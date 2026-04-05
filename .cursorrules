@@ -1,0 +1,30 @@
+# Project
+Reciper MVP — AI-nutrition assistant. Local-first Flutter app (client) + stateless FastAPI (backend) for Gemini AI integration. Monorepo structure.
+
+## Stack
+- **Client:** Flutter, Dart, flutter_bloc (state), Drift (SQLite), Freezed, Dio.
+- **Backend:** Python 3.12, FastAPI, google-genai, Pydantic, Docker.
+
+## Commands
+### Client (run inside `/client`)
+`flutter pub run build_runner build -d` — generate Freezed, JSON, and Drift files
+`flutter analyze` — run linter
+`flutter test` — run unit tests
+
+### Backend (run inside `/backend`)
+`docker-compose up --build` — start local server with AI
+`pytest` — run all tests
+`ruff check` — lint Python code
+
+## Conventions
+- **Documentation:** Always consult `project_rules/Architecture.md`, `project_rules/Development plan.md`, and `project_rules/Screens.md` before implementing features.
+- **Local-First (Client):** ALL user data (profile, meal plans, fridge, progress) must be stored locally using Drift. 
+- **Stateless API (Backend):** The backend acts ONLY as an AI orchestrator. No databases (PostgreSQL, etc.) on the server. The client must pass full context in requests.
+- **Client Architecture:** Strict layer separation: `data` (repos/API/DB), `domain` (models/BLoC), `module` (screens/widgets). Models must be immutable (`@freezed`).
+- **Backend Prompts:** Store all Gemini prompt templates in `.txt` files inside `backend/prompts/`, never hardcode them in Python.
+
+## Boundaries
+- No new dependencies (`pubspec.yaml`, `pyproject.toml`) without explicit approval.
+- Do not propose adding state/databases to the backend. Keep it local-first.
+- Never hardcode the Gemini model version (use `GEMINI_MODEL` from config).
+- Never manually edit generated files (`*.g.dart`, `*.freezed.dart`).
