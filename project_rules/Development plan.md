@@ -5,7 +5,7 @@
 ## Задача 1. Инициализация Flutter-проекта и базовая инфраструктура
 
 ### Что сделать
-- Создать Flutter-проект, настроить структуру папок по `docs/architecture_mvp.md` (все папки, пустые файлы-заглушки не нужны — только каркас).
+- Настроить структуру папок по `docs/architecture_mvp.md` (все папки, пустые файлы-заглушки не нужны — только каркас).
 - Настроить `pubspec.yaml` со всеми зависимостями из раздела 1 документа архитектуры.
 - Настроить `flutter_native_splash` и `flutter_launcher_icons` (временные placeholder-иконки).
 - Создать `core/theme/app_theme.dart`, `app_colors.dart`, `app_text_styles.dart` — базовая тема приложения (цветовая схема, типографика, отступы).
@@ -30,6 +30,7 @@
 ## Задача 2. Локальная БД (Drift) — схема и инициализация
 
 ### Что сделать
+- Написать unit-тест: вставить план → день → блюдо → рецепт → ингредиенты, прочитать по FK — связи работают.
 - Подключить `drift`, `sqlite3_flutter_libs`, `path_provider`, `drift_dev` (dev).
 - Создать `data/local/db/app_database.dart` — класс базы данных.
 - Создать таблицы в `data/local/db/tables/`:
@@ -53,7 +54,6 @@
 - `flutter pub run build_runner build` проходит без ошибок.
 - В `main.dart` создаётся экземпляр `AppDatabase` — приложение запускается.
 - Написать unit-тест: создать in-memory базу, вставить запись профиля, прочитать — данные совпадают.
-- Написать unit-тест: вставить план → день → блюдо → рецепт → ингредиенты, прочитать по FK — связи работают.
 - Проверить, что при повторном запуске приложения данные сохраняются (hot restart не стирает БД).
 
 ---
@@ -61,6 +61,7 @@
 ## Задача 3. Domain-модели (freezed) и маппинг
 
 ### Что сделать
+- Написать unit-тесты из "Как тестировать".
 - Создать все модели в `domain/models/` с `@freezed`:
   - `profile.dart`, `user_preferences.dart`, `nutrition.dart`, `meal_plan.dart`, `day_plan.dart`, `meal.dart`, `recipe.dart`, `ingredient.dart`, `shopping_item.dart`, `fridge_product.dart`, `fridge_scan.dart`, `weight_entry.dart`, `cooking_step.dart`.
 - Создать enums в `domain/models/enums/`: `goal.dart`, `gender.dart`, `meal_type.dart`, `activity_level.dart`, `budget_level.dart`, `diet_type.dart`, `difficulty.dart`, `replace_reason.dart`.
