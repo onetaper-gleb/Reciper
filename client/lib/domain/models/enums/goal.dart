@@ -5,5 +5,4 @@ enum Goal {
   loseWeight,
   maintain,
   gainMuscle,
-  cutting,
 }

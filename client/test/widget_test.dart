@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:client/app/app.dart';
 import 'package:client/app/dependencies.dart';
 import 'package:client/app/dependencies_scope.dart';
-import 'package:client/core/constants/storage_keys.dart';
 import 'package:client/data/local/db/app_database.dart';
 import 'package:client/data/local/source/profile_local_source.dart';
 import 'package:client/data/local/source/settings_local_source.dart';
@@ -18,9 +17,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Main shell shows home tab title', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({
-      StorageKeys.onboardingCompleted: true,
-    });
+    SharedPreferences.setMockInitialValues({});
 
     final database = AppDatabase.test();
     addTearDown(() async => database.close());

@@ -28,5 +28,4 @@ const _$GoalEnumMap = {
   Goal.loseWeight: 'lose_weight',
   Goal.maintain: 'maintain',
   Goal.gainMuscle: 'gain_muscle',
-  Goal.cutting: 'cutting',
 };

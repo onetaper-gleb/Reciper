@@ -8,7 +8,6 @@ enum DbGoal {
   loseWeight,
   maintain,
   gainMuscle,
-  cutting,
 }
 
 enum DbActivityLevel {
