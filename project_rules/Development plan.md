@@ -142,7 +142,7 @@
 ## Задача 6. Backend — каркас FastAPI + Docker
 
 ### Что сделать
-- Создать папку `backend/` со структурой из раздела 4 документа архитектуры.
+- Работать в папке `backend/` и создать там структуру из раздела 4 документа архитектуры.
 - `pyproject.toml` со всеми зависимостями (fastapi, uvicorn, pydantic, pydantic-settings, httpx, google-genai, python-multipart, pytest, ruff).
 - `app/core/config.py` — `Settings` через `pydantic-settings`:
   - `GEMINI_API_KEY`
@@ -306,6 +306,7 @@
 ## Задача 11. Главный экран — отображение плана питания
 
 ### Что сделать
+- Реализовать Mock для запросов на бэке в .env.exmaple, чтобы можно было выбирать, запрос будет реально к API Gemini или просто будут выдаваться фейковые данные.
 - Реализовать `module/home/home_screen.dart` и `home_controller.dart`.
 - Верхняя часть:
   - `widgets/day_selector.dart` — горизонтальный скроллер дней (текущая неделя плана), выделение текущего дня, свайп.

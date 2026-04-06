@@ -9,16 +9,16 @@ abstract final class OnboardingValidators {
 
   static String? ageError(int? age) {
     if (age == null) return 'Укажите возраст';
-    if (age < 8 || age > 120) {
-      return 'Возраст от 8 до 120 лет';
+    if (age < 10 || age > 120) {
+      return 'Возраст от 10 до 120 лет';
     }
     return null;
   }
 
   static String? heightCmError(double? heightCm) {
     if (heightCm == null) return 'Укажите рост';
-    if (heightCm < 50 || heightCm > 300) {
-      return 'Рост от 50 до 300 см';
+    if (heightCm < 50 || heightCm > 250) {
+      return 'Рост от 50 до 250 см';
     }
     return null;
   }

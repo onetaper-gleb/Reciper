@@ -46,6 +46,12 @@ linked_*.ds
 unlinked.ds
 unlinked_spec.ds
 
+# Freezed & JSON Serializable generated files
+*.freezed.dart
+*.freezed.dart.map
+*.g.dart
+*.g.dart.map
+
 # Android related
 **/android/**/gradle-wrapper.jar
 .gradle/

@@ -1,0 +1,5 @@
+Recognize fridge products from image and return JSON only.
+
+Existing products (for merge/append logic):
+{existing_products}
+
