@@ -33,6 +33,7 @@ abstract final class NutritionCalculator {
         Goal.loseWeight => 0.75,
         Goal.maintain => 1.0,
         Goal.gainMuscle => 1.12,
+        Goal.cutting => 0.85,
       };
 
   /// Macro ratios (fractions of total kcal) by goal.
@@ -41,6 +42,7 @@ abstract final class NutritionCalculator {
         Goal.loseWeight => (protein: 0.30, fat: 0.30, carbs: 0.40),
         Goal.maintain => (protein: 0.25, fat: 0.30, carbs: 0.45),
         Goal.gainMuscle => (protein: 0.30, fat: 0.25, carbs: 0.45),
+        Goal.cutting => (protein: 0.35, fat: 0.28, carbs: 0.37),
       };
 
   /// Daily calorie target and КБЖУ (4 kcal/g protein & carbs, 9 kcal/g fat).

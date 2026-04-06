@@ -61,12 +61,14 @@ abstract final class ProfileMapper {
         DbGoal.loseWeight => Goal.loseWeight,
         DbGoal.maintain => Goal.maintain,
         DbGoal.gainMuscle => Goal.gainMuscle,
+        DbGoal.cutting => Goal.cutting,
       };
 
   static DbGoal _dbGoal(Goal value) => switch (value) {
         Goal.loseWeight => DbGoal.loseWeight,
         Goal.maintain => DbGoal.maintain,
         Goal.gainMuscle => DbGoal.gainMuscle,
+        Goal.cutting => DbGoal.cutting,
       };
 
   static ActivityLevel _activity(DbActivityLevel value) => switch (value) {
