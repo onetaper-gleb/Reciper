@@ -1,0 +1,19 @@
+Generate a personalized meal plan.
+Return JSON ONLY and it MUST match the schema from the system instruction (keys/shape).
+Use lowercase `meal_type` values: breakfast, lunch, dinner, snack_1, snack_2.
+
+Profile:
+{profile}
+
+Preferences:
+{preferences}
+
+Plan options:
+{plan_options}
+
+Fridge products:
+{fridge_products}
+
+Additional notes:
+{notes}
+

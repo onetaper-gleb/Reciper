@@ -1,0 +1,29 @@
+[project]
+name = "reciper-backend"
+version = "0.1.0"
+description = "Reciper MVP backend — FastAPI AI orchestrator for Gemini"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2,<3",
+    "pydantic-settings>=2,<3",
+    "httpx",
+    "google-genai",
+    "python-multipart",
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+

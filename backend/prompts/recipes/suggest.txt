@@ -1,0 +1,11 @@
+Suggest recipes and return JSON only.
+
+User query:
+{query}
+
+Filters:
+{filters}
+
+Fridge products:
+{fridge_products}
+
