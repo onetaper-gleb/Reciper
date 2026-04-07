@@ -230,13 +230,13 @@ class MealPlanRepository {
     final newRecipeId = await _db.recipeDao.insertRecipe(
       RecipesCompanion.insert(
         title: generated.title,
-        cookingTimeMinutes: currentRecipe.cookingTimeMinutes,
+        cookingTimeMinutes: generated.cookingTimeMinutes,
         difficulty: currentRecipe.difficulty,
         servings: currentRecipe.servings,
-        calories: currentRecipe.calories,
-        proteinG: currentRecipe.proteinG,
-        fatG: currentRecipe.fatG,
-        carbsG: currentRecipe.carbsG,
+        calories: generated.calories,
+        proteinG: generated.proteinG,
+        fatG: generated.fatG,
+        carbsG: generated.carbsG,
         isFavorite: Value(currentRecipe.isFavorite),
         stepsJson: currentRecipe.stepsJson,
       ),

@@ -12,10 +12,15 @@ import 'package:client/data/local/source/preferences_local_source.dart';
 import 'package:client/data/local/source/settings_local_source.dart';
 import 'package:client/data/remote/api/reciper_api.dart';
 import 'package:client/data/remote/source/meal_plan_remote_source.dart';
+import 'package:client/data/remote/source/fridge_remote_source.dart';
+import 'package:client/data/remote/source/recipe_remote_source.dart';
 import 'package:client/data/repository/profile_repository.dart';
 import 'package:client/data/repository/meal_plan_repository.dart';
 import 'package:client/data/repository/preferences_repository.dart';
 import 'package:client/data/repository/settings_repository.dart';
+import 'package:client/data/repository/fridge_repository.dart';
+import 'package:client/data/repository/recipe_repository.dart';
+import 'package:client/data/repository/shopping_list_repository.dart';
 import 'package:client/domain/bloc/profile/profile_bloc.dart';
 import 'package:client/domain/bloc/profile/profile_event.dart';
 import 'package:client/domain/bloc/meal_plan/meal_plan_bloc.dart';
@@ -42,6 +47,8 @@ void main() {
     final connectivityService = ConnectivityService();
     addTearDown(connectivityService.dispose);
     final mealPlanRemoteSource = MealPlanRemoteSourceImpl(api);
+    final fridgeRemoteSource = FridgeRemoteSourceImpl(api);
+    final recipeRemoteSource = RecipeRemoteSourceImpl(api);
     final preferencesRepository = PreferencesRepository(
       PreferencesLocalSource(database.profileDao),
     );
@@ -62,6 +69,17 @@ void main() {
         database: database,
         remoteSource: mealPlanRemoteSource,
       ),
+      fridgeRemoteSource: fridgeRemoteSource,
+      fridgeRepository: FridgeRepository(
+        database: database,
+        remoteSource: fridgeRemoteSource,
+      ),
+      recipeRemoteSource: recipeRemoteSource,
+      recipeRepository: RecipeRepository(
+        database: database,
+        remoteSource: recipeRemoteSource,
+      ),
+      shoppingListRepository: ShoppingListRepository(database: database),
     );
 
     await tester.pumpWidget(

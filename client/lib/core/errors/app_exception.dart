@@ -11,11 +11,11 @@ class NetworkException extends AppException {
 }
 
 class NoConnectionException extends NetworkException {
-  const NoConnectionException() : super('No internet connection');
+  const NoConnectionException() : super('Нет подключения к интернету');
 }
 
 class TimeoutException extends NetworkException {
-  const TimeoutException() : super('Request timed out');
+  const TimeoutException() : super('Превышено время ожидания запроса');
 }
 
 class ServerException extends AppException {

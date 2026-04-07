@@ -13,12 +13,12 @@ class _ReplaceMealBottomSheetState extends State<ReplaceMealBottomSheet> {
   final _controller = TextEditingController();
   String _reason = 'other';
 
-  static const _reasons = [
-    'no_ingredients',
-    'too_long_to_cook',
-    'dont_like',
-    'other',
-  ];
+  static const _reasons = <String, String>{
+    'no_ingredients': 'Нет ингредиентов',
+    'too_long_to_cook': 'Долго готовить',
+    'dont_like': 'Не нравится',
+    'other': 'Другое',
+  };
 
   @override
   void dispose() {
@@ -43,12 +43,12 @@ class _ReplaceMealBottomSheetState extends State<ReplaceMealBottomSheet> {
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: _reasons
+            children: _reasons.entries
                 .map(
-                  (r) => ChoiceChip(
-                    label: Text(r),
-                    selected: _reason == r,
-                    onSelected: (_) => setState(() => _reason = r),
+                  (e) => ChoiceChip(
+                    label: Text(e.value),
+                    selected: _reason == e.key,
+                    onSelected: (_) => setState(() => _reason = e.key),
                   ),
                 )
                 .toList(),

@@ -14,10 +14,15 @@ import 'data/local/source/preferences_local_source.dart';
 import 'data/local/source/settings_local_source.dart';
 import 'data/remote/api/reciper_api.dart';
 import 'data/remote/source/meal_plan_remote_source.dart';
+import 'data/remote/source/fridge_remote_source.dart';
+import 'data/remote/source/recipe_remote_source.dart';
 import 'data/repository/profile_repository.dart';
 import 'data/repository/meal_plan_repository.dart';
 import 'data/repository/preferences_repository.dart';
 import 'data/repository/settings_repository.dart';
+import 'data/repository/fridge_repository.dart';
+import 'data/repository/recipe_repository.dart';
+import 'data/repository/shopping_list_repository.dart';
 import 'domain/bloc/profile/profile_bloc.dart';
 import 'domain/bloc/profile/profile_event.dart';
 import 'domain/bloc/meal_plan/meal_plan_bloc.dart';
@@ -37,6 +42,8 @@ Future<void> main() async {
   final reciperApi = ReciperApi(dio);
   final connectivityService = ConnectivityService();
   final mealPlanRemoteSource = MealPlanRemoteSourceImpl(reciperApi);
+  final fridgeRemoteSource = FridgeRemoteSourceImpl(reciperApi);
+  final recipeRemoteSource = RecipeRemoteSourceImpl(reciperApi);
 
   final profileLocalSource = ProfileLocalSource(database.profileDao);
   final preferencesLocalSource = PreferencesLocalSource(database.profileDao);
@@ -52,6 +59,15 @@ Future<void> main() async {
     database: database,
     remoteSource: mealPlanRemoteSource,
   );
+  final fridgeRepository = FridgeRepository(
+    database: database,
+    remoteSource: fridgeRemoteSource,
+  );
+  final recipeRepository = RecipeRepository(
+    database: database,
+    remoteSource: recipeRemoteSource,
+  );
+  final shoppingListRepository = ShoppingListRepository(database: database);
 
   final dependencies = Dependencies(
     database: database,
@@ -64,6 +80,11 @@ Future<void> main() async {
     settingsRepository: settingsRepository,
     preferencesRepository: preferencesRepository,
     mealPlanRepository: mealPlanRepository,
+    fridgeRemoteSource: fridgeRemoteSource,
+    fridgeRepository: fridgeRepository,
+    recipeRemoteSource: recipeRemoteSource,
+    recipeRepository: recipeRepository,
+    shoppingListRepository: shoppingListRepository,
   );
 
   AppLogger.info('main: starting app');

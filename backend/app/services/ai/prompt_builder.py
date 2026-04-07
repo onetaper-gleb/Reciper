@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from pydantic import BaseModel
+
 from app.services.ai.prompt_loader import PromptLoader
 
 
@@ -60,7 +62,7 @@ class PromptBuilder:
         filters: dict[str, Any],
         fridge_products: list[Any],
     ) -> tuple[str, str]:
-        system = self.loader.load("meal_plan/system.txt")
+        system = self.loader.load("recipes/system.txt")
         user = self.loader.load(
             "recipes/suggest.txt",
             query=query,
@@ -69,7 +71,27 @@ class PromptBuilder:
         )
         return system, user
 
+    def build_recipe_generate_prompt(
+        self,
+        prompt: str,
+        preferences: dict[str, Any],
+        nutrition_target: dict[str, Any] | None,
+    ) -> tuple[str, str]:
+        system = self.loader.load("recipes/system.txt")
+        user = self.loader.load(
+            "recipes/generate.txt",
+            prompt=prompt,
+            preferences=self._as_json(preferences),
+            nutrition_target=self._as_json(nutrition_target or {}),
+        )
+        return system, user
+
     @staticmethod
     def _as_json(value: Any) -> str:
-        return json.dumps(value, ensure_ascii=False, indent=2)
+        def _default(obj: Any) -> Any:
+            if isinstance(obj, BaseModel):
+                return obj.model_dump()
+            raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
+        return json.dumps(value, ensure_ascii=False, indent=2, default=_default)
 

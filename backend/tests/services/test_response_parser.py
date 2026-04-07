@@ -33,3 +33,27 @@ def test_parse_invalid_json_raises_error() -> None:
     with pytest.raises(AIServiceError):
         parser.parse_json_response("this is not json", ParsedResult)
 
+
+def test_parse_json_inside_markdown_fence() -> None:
+    parser = ResponseParser()
+    raw = """```json
+{"name":"Omelette","calories":420}
+```"""
+
+    result = parser.parse_json_response(raw, ParsedResult)
+
+    assert result.name == "Omelette"
+    assert result.calories == 420
+
+
+def test_parse_json_inside_plain_fence_without_language() -> None:
+    parser = ResponseParser()
+    raw = """```
+{"name":"Toast","calories":300}
+```"""
+
+    result = parser.parse_json_response(raw, ParsedResult)
+
+    assert result.name == "Toast"
+    assert result.calories == 300
+

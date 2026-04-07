@@ -36,6 +36,13 @@ class GeminiClient:
         self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
     def generate_text(self, prompt: str, system_instruction: str) -> str:
+        logger.debug(
+            "Gemini generate_text input: model=%s prompt_len=%s system_len=%s prompt_preview=%s",
+            self.model,
+            len(prompt),
+            len(system_instruction),
+            prompt[:700],
+        )
         response = self._call_with_retry(
             contents=prompt,
             config={
@@ -43,8 +50,13 @@ class GeminiClient:
                 "safety_settings": get_default_safety_settings(),
             },
         )
-        logger.info(f"Response blin: {response}")
-        return self._extract_text(response)
+        text = self._extract_text(response)
+        logger.debug(
+            "Gemini generate_text output: text_len=%s text_preview=%s",
+            len(text),
+            text[:1000],
+        )
+        return text
 
     def generate_with_image(self, prompt: str, image_bytes: bytes, system_instruction: str) -> str:
         contents = [

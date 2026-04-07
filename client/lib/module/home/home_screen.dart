@@ -6,7 +6,10 @@ import '../../domain/bloc/meal_plan/meal_plan_bloc.dart';
 import '../../domain/bloc/meal_plan/meal_plan_event.dart';
 import '../../domain/bloc/meal_plan/meal_plan_state.dart';
 import '../plan_generation/plan_generation_screen.dart';
+import '../recipe_detail/recipe_detail_screen.dart';
+import '../shopping_list/shopping_list_screen.dart';
 import 'home_controller.dart';
+import 'package:client/core/utils/app_logger.dart';
 import 'widgets/day_selector.dart';
 import 'widgets/meal_section.dart';
 import 'widgets/nutrition_summary.dart';
@@ -161,7 +164,7 @@ class _LoadedPlanView extends StatelessWidget {
           items: byType['breakfast'] ?? const [],
           isOffline: !isOnline,
           onReplace: (item) => _showReplaceBottomSheet(context, item.meal.id),
-          onTapMeal: (_) {},
+          onTapMeal: (item) => _openRecipeDetail(context, item),
           onMarkDone: (item) =>
               context.read<MealPlanBloc>().add(MealCompleted(item.meal.id)),
         ),
@@ -170,7 +173,7 @@ class _LoadedPlanView extends StatelessWidget {
           items: byType['lunch'] ?? const [],
           isOffline: !isOnline,
           onReplace: (item) => _showReplaceBottomSheet(context, item.meal.id),
-          onTapMeal: (_) {},
+          onTapMeal: (item) => _openRecipeDetail(context, item),
           onMarkDone: (item) =>
               context.read<MealPlanBloc>().add(MealCompleted(item.meal.id)),
         ),
@@ -179,7 +182,7 @@ class _LoadedPlanView extends StatelessWidget {
           items: byType['dinner'] ?? const [],
           isOffline: !isOnline,
           onReplace: (item) => _showReplaceBottomSheet(context, item.meal.id),
-          onTapMeal: (_) {},
+          onTapMeal: (item) => _openRecipeDetail(context, item),
           onMarkDone: (item) =>
               context.read<MealPlanBloc>().add(MealCompleted(item.meal.id)),
         ),
@@ -188,13 +191,22 @@ class _LoadedPlanView extends StatelessWidget {
           items: byType['snack'] ?? const [],
           isOffline: !isOnline,
           onReplace: (item) => _showReplaceBottomSheet(context, item.meal.id),
-          onTapMeal: (_) {},
+          onTapMeal: (item) => _openRecipeDetail(context, item),
           onMarkDone: (item) =>
               context.read<MealPlanBloc>().add(MealCompleted(item.meal.id)),
         ),
         const SizedBox(height: 16),
         OutlinedButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ShoppingListScreen(
+                  planId: state.plan.mealPlan.id,
+                  date: state.selectedDate,
+                ),
+              ),
+            );
+          },
           child: const Text('Список покупок на этот день'),
         ),
       ],
@@ -207,11 +219,28 @@ class _LoadedPlanView extends StatelessWidget {
       isScrollControlled: true,
       builder: (context) => ReplaceMealBottomSheet(
         onSubmit: (reason, notes) {
+          AppLogger.info('HomeScreen: _showReplaceBottomSheet: $reason, $notes');
           Navigator.pop(context);
           context
               .read<MealPlanBloc>()
               .add(MealReplaceRequested(mealId: mealId, reason: reason, notes: notes));
         },
+      ),
+    );
+  }
+
+  void _openRecipeDetail(BuildContext context, HomeMealItem item) {
+    final ingredients = state.plan.ingredients
+        .where((i) => i.recipeId == item.recipe.id)
+        .toList();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RecipeDetailScreen(
+          recipe: item.recipe,
+          ingredients: ingredients,
+          meal: item.meal,
+          mealPlanId: state.plan.mealPlan.id,
+        ),
       ),
     );
   }

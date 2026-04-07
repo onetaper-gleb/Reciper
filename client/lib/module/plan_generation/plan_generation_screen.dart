@@ -63,7 +63,7 @@ class _PlanGenerationView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Мини-визард (MVP): заполнение шагов будет расширено.'),
+                const Text('Мини-визард (MVP): позже добавим все шаги.'),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {

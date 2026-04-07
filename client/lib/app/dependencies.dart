@@ -6,8 +6,13 @@ import '../data/repository/profile_repository.dart';
 import '../data/repository/settings_repository.dart';
 import '../data/repository/meal_plan_repository.dart';
 import '../data/repository/preferences_repository.dart';
+import '../data/repository/fridge_repository.dart';
+import '../data/repository/recipe_repository.dart';
+import '../data/repository/shopping_list_repository.dart';
 import '../data/remote/api/reciper_api.dart';
 import '../data/remote/source/meal_plan_remote_source.dart';
+import '../data/remote/source/fridge_remote_source.dart';
+import '../data/remote/source/recipe_remote_source.dart';
 import '../services/connectivity_service.dart';
 
 /// Composition root: repositories, database, HTTP client will be wired here.
@@ -23,6 +28,11 @@ class Dependencies {
     required this.settingsRepository,
     required this.preferencesRepository,
     required this.mealPlanRepository,
+    required this.fridgeRemoteSource,
+    required this.fridgeRepository,
+    required this.recipeRemoteSource,
+    required this.recipeRepository,
+    required this.shoppingListRepository,
   });
 
   final AppDatabase database;
@@ -35,4 +45,9 @@ class Dependencies {
   final SettingsRepository settingsRepository;
   final PreferencesRepository preferencesRepository;
   final MealPlanRepository mealPlanRepository;
+  final FridgeRemoteSource fridgeRemoteSource;
+  final FridgeRepository fridgeRepository;
+  final RecipeRemoteSource recipeRemoteSource;
+  final RecipeRepository recipeRepository;
+  final ShoppingListRepository shoppingListRepository;
 }

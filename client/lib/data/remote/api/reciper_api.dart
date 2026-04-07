@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:client/core/utils/app_logger.dart';
 
 import '../dto/meal_plan/generate_meal_plan_request_dto.dart';
 import '../dto/meal_plan/generate_meal_plan_response_dto.dart';
-import '../dto/meal_plan/replace_meal_request_dto.dart';
 import 'api_endpoints.dart';
 
 class ReciperApi {
@@ -22,11 +22,13 @@ class ReciperApi {
     return GenerateMealPlanResponseDto.fromJson(response.data!);
   }
 
-  Future<Map<String, dynamic>> replaceMeal(ReplaceMealRequestDto request) async {
+  Future<Map<String, dynamic>> replaceMeal(Map<String, dynamic> requestJson) async {
+    AppLogger.info('ReciperApi.replaceMeal request=$requestJson');
     final response = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.replaceMeal,
-      data: request.toJson(),
+      data: requestJson,
     );
+    AppLogger.info('ReciperApi.replaceMeal response=${response.data}');
     return response.data!;
   }
 
@@ -39,13 +41,23 @@ class ReciperApi {
     return response.data!;
   }
 
+  Future<Map<String, dynamic>> generateRecipe(Map<String, dynamic> requestJson) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      ApiEndpoints.generateRecipe,
+      data: requestJson,
+    );
+    return response.data!;
+  }
+
   Future<Map<String, dynamic>> scanFridge(
     File image, {
     String? existingProductsJson,
+    String scanMode = 'replace',
   }) async {
     final form = FormData.fromMap({
       'image': await MultipartFile.fromFile(image.path),
-      if (existingProductsJson != null) 'existing_products_json': existingProductsJson,
+      'existing_products_json': existingProductsJson,
+      'scan_mode': scanMode,
     });
     final response = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.scanFridge,

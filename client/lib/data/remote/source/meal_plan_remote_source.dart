@@ -1,7 +1,7 @@
 import '../api/reciper_api.dart';
 import '../dto/meal_plan/generate_meal_plan_request_dto.dart';
-import '../dto/meal_plan/replace_meal_request_dto.dart';
 import '../mappers/meal_plan_mapper.dart';
+import 'package:client/core/utils/app_logger.dart';
 import 'package:client/domain/models/enums/goal.dart';
 import 'package:client/domain/models/enums/difficulty.dart';
 import 'package:client/domain/models/enums/meal_type.dart';
@@ -71,21 +71,54 @@ class GeneratedMeal {
 }
 
 class GeneratedRecipe {
-  const GeneratedRecipe({required this.title});
+  const GeneratedRecipe({
+    required this.title,
+    required this.cookingTimeMinutes,
+    required this.calories,
+    required this.proteinG,
+    required this.fatG,
+    required this.carbsG,
+  });
   final String title;
+  final int cookingTimeMinutes;
+  final double calories;
+  final double proteinG;
+  final double fatG;
+  final double carbsG;
 
-  factory GeneratedRecipe.fake({required String title}) => GeneratedRecipe(title: title);
-
-  Recipe toRecipe() => Recipe(
-        id: 0,
+  factory GeneratedRecipe.fake({required String title}) => GeneratedRecipe(
         title: title,
         cookingTimeMinutes: 10,
-        difficulty: Difficulty.easy,
-        servings: 1,
         calories: 300,
         proteinG: 10,
         fatG: 10,
         carbsG: 40,
+      );
+
+  factory GeneratedRecipe.fromReplaceResponse(Map<String, dynamic> data) {
+    final recipe = (data['recipe'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final nutrition =
+        (recipe['nutrition'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return GeneratedRecipe(
+      title: recipe['name']?.toString() ?? 'Рецепт',
+      cookingTimeMinutes: (recipe['cooking_time_min'] as num?)?.toInt() ?? 10,
+      calories: (nutrition['calories'] as num?)?.toDouble() ?? 300,
+      proteinG: (nutrition['protein_g'] as num?)?.toDouble() ?? 0,
+      fatG: (nutrition['fat_g'] as num?)?.toDouble() ?? 0,
+      carbsG: (nutrition['carbs_g'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  Recipe toRecipe() => Recipe(
+        id: 0,
+        title: title,
+        cookingTimeMinutes: cookingTimeMinutes,
+        difficulty: Difficulty.easy,
+        servings: 1,
+        calories: calories,
+        proteinG: proteinG,
+        fatG: fatG,
+        carbsG: carbsG,
         isFavorite: false,
         steps: const [],
       );
@@ -132,12 +165,29 @@ class MealPlanRemoteSourceImpl implements MealPlanRemoteSource {
 
   @override
   Future<GeneratedRecipe> replaceMeal({required Map<String, dynamic> requestJson}) async {
-    final data = await _api.replaceMeal(
-      ReplaceMealRequestDto.fromJson(requestJson),
+    final normalized = _stringKeyedDeep(requestJson);
+    AppLogger.info('MealPlanRemoteSource.replaceMeal normalizedRequest=$normalized');
+    final data = await _api.replaceMeal(normalized);
+    final generated = GeneratedRecipe.fromReplaceResponse(data);
+    AppLogger.info(
+      'MealPlanRemoteSource.replaceMeal parsedRecipe='
+      '${generated.title}, ${generated.cookingTimeMinutes}m, ${generated.calories}kcal',
     );
-    // For now keep a minimal representation; full mapping will be in task 11/12.
-    final title = (data['recipe'] as Map?)?['name']?.toString() ?? 'Recipe';
-    return GeneratedRecipe(title: title);
+    return generated;
   }
+}
+
+Map<String, dynamic> _stringKeyedDeep(Map<String, dynamic> input) {
+  dynamic convert(dynamic value) {
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), convert(v)));
+    }
+    if (value is List) {
+      return value.map(convert).toList();
+    }
+    return value;
+  }
+
+  return Map<String, dynamic>.from(convert(input) as Map);
 }
 

@@ -7,6 +7,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.services.ai.prompt_builder import PromptBuilder  # noqa: E402
 from app.services.ai.prompt_loader import PromptLoader  # noqa: E402
+from app.schemas.fridge import RecognizedProductSchema  # noqa: E402
 
 
 def test_build_meal_plan_prompt_contains_user_fields() -> None:
@@ -54,4 +55,36 @@ def test_build_replace_and_recipe_prompts_include_inputs() -> None:
     assert "quick dinner" in recipe_prompt
     assert "20" in recipe_prompt
     assert "pasta" in recipe_prompt
+
+
+def test_build_fridge_and_recipe_generate_prompts_include_payload() -> None:
+    loader = PromptLoader(prompts_root=PROJECT_ROOT / "prompts")
+    builder = PromptBuilder(loader=loader)
+
+    _, fridge_prompt = builder.build_fridge_scan_prompt(
+        existing_products=[{"name": "Яйца", "amount": 4, "unit": "шт"}]
+    )
+    _, recipe_generate_prompt = builder.build_recipe_generate_prompt(
+        prompt="Белковый завтрак",
+        preferences={"diet_type": "regular"},
+        nutrition_target={"calories": 400, "protein_g": 30},
+    )
+
+    assert "Яйца" in fridge_prompt
+    assert "Белковый завтрак" in recipe_generate_prompt
+    assert "protein_g" in recipe_generate_prompt
+
+
+def test_build_fridge_prompt_serializes_pydantic_models() -> None:
+    loader = PromptLoader(prompts_root=PROJECT_ROOT / "prompts")
+    builder = PromptBuilder(loader=loader)
+
+    _, fridge_prompt = builder.build_fridge_scan_prompt(
+        existing_products=[
+            RecognizedProductSchema(name="Яйца", amount=4, unit="шт", confidence=0.9),
+        ]
+    )
+
+    assert "Яйца" in fridge_prompt
+    assert "confidence" in fridge_prompt
 

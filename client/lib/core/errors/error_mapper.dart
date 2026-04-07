@@ -15,16 +15,16 @@ AppException mapDioError(DioException error) {
     case DioExceptionType.badResponse:
       final statusCode = error.response?.statusCode ?? 500;
       final msg = error.response?.data is Map<String, dynamic>
-          ? (error.response?.data['detail']?.toString() ?? 'Server error')
-          : 'Server error';
+          ? (error.response?.data['detail']?.toString() ?? 'Ошибка сервера')
+          : 'Ошибка сервера';
       return ServerException(statusCode: statusCode, message: msg);
     case DioExceptionType.cancel:
-      return const NetworkException('Request cancelled');
+      return const NetworkException('Запрос отменён');
     case DioExceptionType.unknown:
       if (error.error is SocketException) return const NoConnectionException();
-      return NetworkException(error.message ?? 'Unknown network error');
+      return NetworkException(error.message ?? 'Неизвестная сетевая ошибка');
     case DioExceptionType.badCertificate:
-      return const NetworkException('Bad certificate');
+      return const NetworkException('Проблема с сертификатом');
   }
 }
 
