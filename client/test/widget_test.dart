@@ -18,6 +18,8 @@ import 'package:client/data/repository/preferences_repository.dart';
 import 'package:client/data/repository/settings_repository.dart';
 import 'package:client/domain/bloc/profile/profile_bloc.dart';
 import 'package:client/domain/bloc/profile/profile_event.dart';
+import 'package:client/domain/bloc/meal_plan/meal_plan_bloc.dart';
+import 'package:client/domain/bloc/meal_plan/meal_plan_event.dart';
 import 'package:client/network/http_client.dart';
 import 'package:client/services/connectivity_service.dart';
 
@@ -65,9 +67,18 @@ void main() {
     await tester.pumpWidget(
       DependenciesScope(
         dependencies: dependencies,
-        child: BlocProvider<ProfileBloc>(
-          create: (_) => ProfileBloc(dependencies.profileRepository)
-            ..add(const ProfileLoadRequested()),
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider<ProfileBloc>(
+              create: (_) => ProfileBloc(dependencies.profileRepository)
+                ..add(const ProfileLoadRequested()),
+            ),
+            BlocProvider<MealPlanBloc>(
+              create: (_) => MealPlanBloc(
+                mealPlanRepository: dependencies.mealPlanRepository,
+              )..add(const MealPlanLoadRequested()),
+            ),
+          ],
           child: const MyApp(),
         ),
       ),

@@ -20,6 +20,8 @@ import 'data/repository/preferences_repository.dart';
 import 'data/repository/settings_repository.dart';
 import 'domain/bloc/profile/profile_bloc.dart';
 import 'domain/bloc/profile/profile_event.dart';
+import 'domain/bloc/meal_plan/meal_plan_bloc.dart';
+import 'domain/bloc/meal_plan/meal_plan_event.dart';
 import 'network/http_client.dart';
 import 'services/connectivity_service.dart';
 
@@ -69,9 +71,17 @@ Future<void> main() async {
   runApp(
     DependenciesScope(
       dependencies: dependencies,
-      child: BlocProvider<ProfileBloc>(
-        create: (_) => ProfileBloc(profileRepository)
-          ..add(const ProfileLoadRequested()),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<ProfileBloc>(
+            create: (_) => ProfileBloc(profileRepository)
+              ..add(const ProfileLoadRequested()),
+          ),
+          BlocProvider<MealPlanBloc>(
+            create: (_) => MealPlanBloc(mealPlanRepository: mealPlanRepository)
+              ..add(const MealPlanLoadRequested()),
+          ),
+        ],
         child: const MyApp(),
       ),
     ),
