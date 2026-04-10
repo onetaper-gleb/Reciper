@@ -11,7 +11,7 @@ from app.core.exceptions import AIServiceError  # noqa: E402
 from app.core.exceptions import ValidationError  # noqa: E402
 from app.main import app  # noqa: E402
 from app.api.v1.endpoints.meal_plans import get_meal_plan_service  # noqa: E402
-from app.services.ai.gemini_client import GeminiTimeoutError  # noqa: E402
+from app.services.ai.exceptions import AITimeoutError as GeminiTimeoutError  # noqa: E402
 
 
 class FakeMealPlanService:

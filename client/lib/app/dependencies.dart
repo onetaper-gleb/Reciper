@@ -1,8 +1,10 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/local/db/app_database.dart';
 import '../data/repository/profile_repository.dart';
+import '../data/repository/progress_repository.dart';
 import '../data/repository/settings_repository.dart';
 import '../data/repository/meal_plan_repository.dart';
 import '../data/repository/preferences_repository.dart';
@@ -28,11 +30,14 @@ class Dependencies {
     required this.settingsRepository,
     required this.preferencesRepository,
     required this.mealPlanRepository,
+    required this.progressRepository,
     required this.fridgeRemoteSource,
     required this.fridgeRepository,
     required this.recipeRemoteSource,
     required this.recipeRepository,
     required this.shoppingListRepository,
+    required this.themeModeNotifier,
+    required this.sessionEpoch,
   });
 
   final AppDatabase database;
@@ -50,4 +55,11 @@ class Dependencies {
   final RecipeRemoteSource recipeRemoteSource;
   final RecipeRepository recipeRepository;
   final ShoppingListRepository shoppingListRepository;
+  final ProgressRepository progressRepository;
+
+  /// Drives [MaterialApp] theme rebuilds.
+  final ValueNotifier<ThemeMode> themeModeNotifier;
+
+  /// Increment to recreate root [BlocProvider]s after a full local data reset.
+  final ValueNotifier<int> sessionEpoch;
 }

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
+    GEMINI_MODEL_FALLBACK: Optional[str] = None
+    AI_MODEL_RACE_ENABLED: bool = False
     CORS_ORIGINS: Annotated[List[str], NoDecode] = []
     LOG_LEVEL: str = "INFO"
 

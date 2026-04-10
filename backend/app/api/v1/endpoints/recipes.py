@@ -9,7 +9,7 @@ from app.schemas.recipe import (
     RecipeSuggestionRequest,
     RecipeSuggestionResponse,
 )
-from app.services.ai.gemini_client import GeminiTimeoutError
+from app.services.ai.exceptions import AITimeoutError as GeminiTimeoutError
 from app.services.recipe_service import RecipeService
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])

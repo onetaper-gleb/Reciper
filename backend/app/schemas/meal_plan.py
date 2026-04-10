@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.common import CookingStepSchema, IngredientSchema, NutritionSchema
+from app.schemas.common import ClientContextSchema, CookingStepSchema, IngredientSchema, NutritionSchema
 
 
 class ProfileSchema(BaseModel):
@@ -27,6 +27,10 @@ class PlanOptionsSchema(BaseModel):
     meals_per_day: int = 5
     cook_when: str | None = None
     use_fridge_products: bool = True
+    start_date: str | None = Field(
+        default=None,
+        description="First calendar day of the plan (YYYY-MM-DD) in the user's local timezone.",
+    )
 
 
 class FridgeProductSchema(BaseModel):
@@ -72,6 +76,7 @@ class GeneratePlanRequest(BaseModel):
     plan_options: PlanOptionsSchema
     fridge_products: list[FridgeProductSchema] = Field(default_factory=list)
     additional_notes: str | None = None
+    client_context: ClientContextSchema | None = None
 
 
 class GeneratePlanResponse(BaseModel):
@@ -99,6 +104,7 @@ class ReplaceMealRequest(BaseModel):
     day_context: DayContextSchema
     preferences: PreferencesSchema
     fridge_products: list[FridgeProductSchema] = Field(default_factory=list)
+    client_context: ClientContextSchema | None = None
 
 
 class ReplaceMealResponse(BaseModel):

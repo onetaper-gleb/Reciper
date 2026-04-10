@@ -7,6 +7,7 @@ import '../../domain/bloc/meal_plan/meal_plan_event.dart';
 import '../../domain/models/ingredient.dart';
 import '../../domain/models/meal.dart';
 import '../../domain/models/recipe.dart';
+import '../cooking_mode/cooking_mode_screen.dart';
 import '../home/widgets/replace_meal_bottom_sheet.dart';
 import 'recipe_detail_controller.dart';
 import 'widgets/portion_selector.dart';
@@ -18,12 +19,16 @@ class RecipeDetailScreen extends StatefulWidget {
     required this.ingredients,
     required this.meal,
     required this.mealPlanId,
+    this.onRecipeUpdated,
   });
 
   final Recipe recipe;
   final List<Ingredient> ingredients;
   final Meal meal;
   final int mealPlanId;
+
+  /// Called after favorite (or other local recipe row) changes — e.g. refresh catalog BLoC.
+  final VoidCallback? onRecipeUpdated;
 
   @override
   State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
@@ -32,13 +37,16 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   int _portions = 1;
   Set<String> _fridgeNames = const {};
-  bool _favorite = false;
+  late Recipe _recipe;
   final Set<int> _checkedIngredientIds = {};
 
   @override
   void initState() {
     super.initState();
-    _favorite = widget.recipe.isFavorite;
+    _recipe = widget.recipe;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncRecipeFromDb();
+    });
     _loadFridgeProducts();
   }
 
@@ -51,16 +59,32 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     });
   }
 
+  Future<void> _syncRecipeFromDb() async {
+    final repo = DependenciesScope.of(context).recipeRepository;
+    final fresh = await repo.getRecipeById(widget.recipe.id);
+    if (!mounted || fresh == null) return;
+    setState(() => _recipe = fresh);
+  }
+
   Future<void> _toggleFavorite() async {
-    final db = DependenciesScope.of(context).database;
-    final row = await db.recipeDao.getRecipeById(widget.recipe.id);
-    if (row == null) return;
-    await db.recipeDao.updateRecipe(row.copyWith(isFavorite: !_favorite));
-    if (!mounted) return;
-    setState(() => _favorite = !_favorite);
+    final repo = DependenciesScope.of(context).recipeRepository;
+    await repo.toggleFavorite(_recipe.id);
+    final fresh = await repo.getRecipeById(_recipe.id);
+    if (!mounted || fresh == null) return;
+    setState(() => _recipe = fresh);
+    widget.onRecipeUpdated?.call();
   }
 
   Future<void> _addMissingToShoppingList() async {
+    if (widget.mealPlanId <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Сначала создайте план питания — список покупок привязан к плану'),
+        ),
+      );
+      return;
+    }
     final db = DependenciesScope.of(context).database;
     final ingredients = widget.ingredients
         .where((i) => !_checkedIngredientIds.contains(i.id))
@@ -107,11 +131,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.recipe.title),
+        title: Text(_recipe.title),
         actions: [
           IconButton(
             onPressed: _toggleFavorite,
-            icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              _recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _recipe.isFavorite ? Colors.red : null,
+            ),
           ),
         ],
       ),
@@ -121,10 +148,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           Wrap(
             spacing: 8,
             children: [
-              Chip(label: Text('${widget.recipe.cookingTimeMinutes} мин')),
-              Chip(label: Text('${widget.recipe.calories.toStringAsFixed(0)} ккал')),
-              Chip(label: Text('${widget.recipe.servings} порц.')),
-              Chip(label: Text(widget.recipe.difficulty.name)),
+              Chip(label: Text('${_recipe.cookingTimeMinutes} мин')),
+              Chip(label: Text('${_recipe.calories.toStringAsFixed(0)} ккал')),
+              Chip(label: Text('${_recipe.servings} порц.')),
+              Chip(label: Text(_recipe.difficulty.name)),
             ],
           ),
           const SizedBox(height: 12),
@@ -134,10 +161,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _Macro(title: 'Ккал', value: widget.recipe.calories),
-                  _Macro(title: 'Б', value: widget.recipe.proteinG),
-                  _Macro(title: 'Ж', value: widget.recipe.fatG),
-                  _Macro(title: 'У', value: widget.recipe.carbsG),
+                  _Macro(title: 'Ккал', value: _recipe.calories),
+                  _Macro(title: 'Б', value: _recipe.proteinG),
+                  _Macro(title: 'Ж', value: _recipe.fatG),
+                  _Macro(title: 'У', value: _recipe.carbsG),
                 ],
               ),
             ),
@@ -176,20 +203,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           const SizedBox(height: 16),
           Text('Пошаговое приготовление', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          ...widget.recipe.steps.map(
+          ..._recipe.steps.map(
             (step) => ListTile(
               leading: CircleAvatar(child: Text('${step.order}')),
               title: Text(step.instruction),
               trailing: step.durationSeconds == null
                   ? null
-                  : IconButton(
-                      icon: const Icon(Icons.timer_outlined),
-                      onPressed: () {
-                        final sec = step.durationSeconds!;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Таймер на $sec сек. добавлен (MVP)')),
-                        );
-                      },
+                  : Tooltip(
+                      message: 'Таймер в режиме готовки',
+                      child: Icon(
+                        Icons.timer_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
             ),
           ),
@@ -198,7 +223,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CookingModeScreen(
+                          recipe: _recipe,
+                          meal: widget.meal,
+                          mealPlanId: widget.mealPlanId,
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text('Начать готовить'),
                 ),
               ),

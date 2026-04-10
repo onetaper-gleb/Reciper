@@ -1,6 +1,9 @@
 Generate ONE detailed recipe as valid JSON only.
 All user-facing text fields MUST be in Russian (Cyrillic): recipe name, ingredient names, step descriptions.
 
+Client context (device local date/time):
+{client_context}
+
 User prompt:
 {prompt}
 

@@ -15,14 +15,14 @@ from app.services.recipe_service import RecipeService  # noqa: E402
 
 
 class StubPromptBuilder:
-    def build_recipe_suggest_prompt(self, query, filters, fridge_products):  # noqa: ANN001
+    def build_recipe_suggest_prompt(self, query, filters, fridge_products, client_context=None):  # noqa: ANN001
         return "system", f"suggest {query} {filters} {fridge_products}"
 
-    def build_recipe_generate_prompt(self, prompt, preferences, nutrition_target):  # noqa: ANN001
+    def build_recipe_generate_prompt(self, prompt, preferences, nutrition_target, client_context=None):  # noqa: ANN001
         return "system", f"generate {prompt} {preferences} {nutrition_target}"
 
 
-class StubGeminiClient:
+class StubAITextClient:
     def __init__(self, response_text: str) -> None:
         self.response_text = response_text
 
@@ -38,7 +38,7 @@ class StubResponseParser:
 def test_suggest_recipes_parses_response() -> None:
     service = RecipeService(
         prompt_builder=StubPromptBuilder(),
-        gemini_client=StubGeminiClient(
+        ai_client=StubAITextClient(
             """
             {
               "recipes": [
@@ -70,7 +70,7 @@ def test_suggest_recipes_parses_response() -> None:
 def test_generate_recipe_parses_response() -> None:
     service = RecipeService(
         prompt_builder=StubPromptBuilder(),
-        gemini_client=StubGeminiClient(
+        ai_client=StubAITextClient(
             """
             {
               "recipe": {

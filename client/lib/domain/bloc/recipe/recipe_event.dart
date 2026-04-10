@@ -41,3 +41,8 @@ class RecipeFavoriteToggled extends RecipeEvent {
   @override
   List<Object?> get props => [id];
 }
+
+/// Re-loads the current catalog list from the DB (e.g. after toggling favorite on detail).
+class RecipeCatalogSyncRequested extends RecipeEvent {
+  const RecipeCatalogSyncRequested();
+}

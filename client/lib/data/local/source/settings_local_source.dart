@@ -37,4 +37,44 @@ class SettingsLocalSource {
     await _prefs.setBool(StorageKeys.notificationsEnabled, value);
     AppLogger.info('SettingsLocalSource: notifications_enabled=$value');
   }
+
+  String? get reminderBreakfastTime =>
+      _prefs.getString(StorageKeys.reminderBreakfastTime);
+
+  Future<void> setReminderBreakfastTime(String value) async {
+    await _prefs.setString(StorageKeys.reminderBreakfastTime, value);
+  }
+
+  String? get reminderLunchTime =>
+      _prefs.getString(StorageKeys.reminderLunchTime);
+
+  Future<void> setReminderLunchTime(String value) async {
+    await _prefs.setString(StorageKeys.reminderLunchTime, value);
+  }
+
+  String? get reminderDinnerTime =>
+      _prefs.getString(StorageKeys.reminderDinnerTime);
+
+  Future<void> setReminderDinnerTime(String value) async {
+    await _prefs.setString(StorageKeys.reminderDinnerTime, value);
+  }
+
+  bool get weighReminderEnabled =>
+      _prefs.getBool(StorageKeys.weighReminderEnabled) ?? false;
+
+  Future<void> setWeighReminderEnabled(bool value) async {
+    await _prefs.setBool(StorageKeys.weighReminderEnabled, value);
+  }
+
+  String? get weighReminderTime =>
+      _prefs.getString(StorageKeys.weighReminderTime);
+
+  Future<void> setWeighReminderTime(String value) async {
+    await _prefs.setString(StorageKeys.weighReminderTime, value);
+  }
+
+  Future<void> clearAll() async {
+    await _prefs.clear();
+    AppLogger.info('SettingsLocalSource: cleared all preferences');
+  }
 }

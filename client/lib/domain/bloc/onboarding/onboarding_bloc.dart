@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:client/core/utils/app_logger.dart';
 import 'package:client/core/utils/nutrition_calculator.dart';
 import 'package:client/core/utils/onboarding_validators.dart';
+import 'package:client/data/repository/preferences_repository.dart';
 import 'package:client/data/repository/profile_repository.dart';
 import 'package:client/domain/bloc/onboarding/onboarding_event.dart';
 import 'package:client/domain/bloc/onboarding/onboarding_state.dart';
@@ -11,7 +12,7 @@ import 'package:client/domain/models/onboarding_draft.dart';
 import 'package:client/domain/models/profile.dart';
 
 class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
-  OnboardingBloc(this._repository)
+  OnboardingBloc(this._repository, this._preferencesRepository)
       : super(const OnboardingEditing(OnboardingDraft())) {
     on<OnboardingDraftUpdated>(_onDraftUpdated);
     on<OnboardingPrepareSummary>(_onPrepareSummary);
@@ -19,6 +20,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   }
 
   final ProfileRepository _repository;
+  final PreferencesRepository _preferencesRepository;
 
   void _onDraftUpdated(
     OnboardingDraftUpdated event,
@@ -68,6 +70,10 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     try {
       final profile = _buildProfile(d);
       await _repository.saveProfile(profile);
+      final allergies = [...d.allergyTags];
+      final other = d.allergiesOther.trim();
+      if (other.isNotEmpty) allergies.add(other);
+      await _preferencesRepository.saveAllergiesFromOnboarding(allergies);
       await _repository.setOnboardingCompleted(true);
       AppLogger.info('OnboardingBloc: finished for ${profile.name}');
       emit(const OnboardingCompleted());

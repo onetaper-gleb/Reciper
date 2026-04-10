@@ -53,12 +53,17 @@ class ReciperApi {
     File image, {
     String? existingProductsJson,
     String scanMode = 'replace',
+    String? clientLocalDatetime,
   }) async {
-    final form = FormData.fromMap({
+    final fields = <String, dynamic>{
       'image': await MultipartFile.fromFile(image.path),
       'existing_products_json': existingProductsJson,
       'scan_mode': scanMode,
-    });
+    };
+    if (clientLocalDatetime != null) {
+      fields['client_local_datetime'] = clientLocalDatetime;
+    }
+    final form = FormData.fromMap(fields);
     final response = await _dio.post<Map<String, dynamic>>(
       ApiEndpoints.scanFridge,
       data: form,

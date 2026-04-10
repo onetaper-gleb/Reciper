@@ -87,4 +87,21 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('PRAGMA foreign_keys = ON;');
         },
       );
+
+  /// Deletes all user rows (profile, plans, recipes, fridge, weight, etc.).
+  Future<void> clearAllUserData() async {
+    await transaction(() async {
+      await delete(shoppingItems).go();
+      await delete(meals).go();
+      await delete(dayPlans).go();
+      await delete(mealPlans).go();
+      await delete(ingredients).go();
+      await delete(recipes).go();
+      await delete(fridgeProducts).go();
+      await delete(fridgeScans).go();
+      await delete(weightEntries).go();
+      await delete(preferences).go();
+      await delete(profiles).go();
+    });
+  }
 }

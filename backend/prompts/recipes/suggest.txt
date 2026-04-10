@@ -2,6 +2,9 @@ Suggest recipes and return JSON only.
 All user-facing text fields MUST be in Russian (Cyrillic): recipe names, ingredient names, step descriptions.
 Return 3-5 recipes when possible.
 
+Client context (device local date/time):
+{client_context}
+
 Return format:
 {{
   "recipes": [

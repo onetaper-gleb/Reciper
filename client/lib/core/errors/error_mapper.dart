@@ -4,6 +4,17 @@ import 'package:dio/dio.dart';
 
 import 'app_exception.dart';
 
+String? _parseServerDetail(dynamic data) {
+  if (data is! Map) return null;
+  final raw = data['detail'];
+  if (raw == null) return null;
+  if (raw is String) return raw;
+  if (raw is List) {
+    return raw.map((e) => e.toString()).join(' ');
+  }
+  return raw.toString();
+}
+
 AppException mapDioError(DioException error) {
   switch (error.type) {
     case DioExceptionType.connectionTimeout:
@@ -14,9 +25,7 @@ AppException mapDioError(DioException error) {
       return const NoConnectionException();
     case DioExceptionType.badResponse:
       final statusCode = error.response?.statusCode ?? 500;
-      final msg = error.response?.data is Map<String, dynamic>
-          ? (error.response?.data['detail']?.toString() ?? 'Ошибка сервера')
-          : 'Ошибка сервера';
+      final msg = _parseServerDetail(error.response?.data) ?? 'Ошибка сервера';
       return ServerException(statusCode: statusCode, message: msg);
     case DioExceptionType.cancel:
       return const NetworkException('Запрос отменён');

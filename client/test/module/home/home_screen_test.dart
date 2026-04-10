@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:client/domain/bloc/meal_plan/meal_plan_bloc.dart';
-import 'package:client/domain/bloc/meal_plan/meal_plan_event.dart';
 import 'package:client/domain/bloc/meal_plan/meal_plan_state.dart';
 import 'package:client/domain/models/day_plan.dart';
 import 'package:client/domain/models/enums/goal.dart';
@@ -76,32 +75,45 @@ void main() {
       ),
     );
 
-    final loaded = MealPlanLoaded(
-      plan: StoredMealPlanGraph(
-        mealPlan: MealPlan(
-          id: 1,
-          startDate: DateTime.utc(2026, 4, 6),
-          endDate: DateTime.utc(2026, 4, 12),
-          goal: Goal.maintain,
-          isActive: true,
-          createdAt: DateTime.utc(2026, 4, 6),
-        ),
-        days: [
-          DayPlan(id: 1, mealPlanId: 1, date: DateTime.utc(2026, 4, 6)),
-        ],
-        meals: const <Meal>[],
-        recipes: const [],
-        ingredients: const [],
+    final graph = StoredMealPlanGraph(
+      mealPlan: MealPlan(
+        id: 1,
+        startDate: DateTime.utc(2026, 4, 6),
+        endDate: DateTime.utc(2026, 4, 12),
+        goal: Goal.maintain,
+        isActive: true,
+        createdAt: DateTime.utc(2026, 4, 6),
       ),
+      days: [
+        DayPlan(id: 1, mealPlanId: 1, date: DateTime.utc(2026, 4, 6)),
+      ],
+      meals: const <Meal>[],
+      recipes: const [],
+      ingredients: const [],
+    );
+    final loaded = MealPlanLoaded(
+      activePlan: graph,
+      plan: graph,
       selectedDate: DateTime.utc(2026, 4, 6),
     );
 
     bloc.emit(loaded);
+    connectivity.add(true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Пересоздать план питания'), findsOneWidget);
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, -900));
+    await tester.pumpAndSettle();
+    expect(find.text('Список покупок на этот день'), findsOneWidget);
+
     connectivity.add(false);
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(RefreshIndicator), const Offset(0, 900));
     await tester.pumpAndSettle();
 
     expect(find.text('Офлайн-режим'), findsOneWidget);
-    expect(find.text('Список покупок на этот день'), findsOneWidget);
+    expect(find.text('Пересоздать план питания'), findsNothing);
+    expect(find.textContaining('только онлайн'), findsOneWidget);
   });
 }
 

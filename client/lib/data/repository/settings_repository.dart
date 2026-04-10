@@ -23,4 +23,31 @@ class SettingsRepository {
 
   Future<void> setNotificationsEnabled(bool value) =>
       _source.setNotificationsEnabled(value);
+
+  String? get reminderBreakfastTime => _source.reminderBreakfastTime;
+
+  Future<void> setReminderBreakfastTime(String value) =>
+      _source.setReminderBreakfastTime(value);
+
+  String? get reminderLunchTime => _source.reminderLunchTime;
+
+  Future<void> setReminderLunchTime(String value) =>
+      _source.setReminderLunchTime(value);
+
+  String? get reminderDinnerTime => _source.reminderDinnerTime;
+
+  Future<void> setReminderDinnerTime(String value) =>
+      _source.setReminderDinnerTime(value);
+
+  bool get weighReminderEnabled => _source.weighReminderEnabled;
+
+  Future<void> setWeighReminderEnabled(bool value) =>
+      _source.setWeighReminderEnabled(value);
+
+  String? get weighReminderTime => _source.weighReminderTime;
+
+  Future<void> setWeighReminderTime(String value) =>
+      _source.setWeighReminderTime(value);
+
+  Future<void> clearAll() => _source.clearAll();
 }

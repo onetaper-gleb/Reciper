@@ -12,6 +12,8 @@ class MealSection extends StatelessWidget {
     required this.onReplace,
     required this.onTapMeal,
     required this.onMarkDone,
+    this.allowReplace = true,
+    this.allowMarkDone = true,
   });
 
   final String title;
@@ -20,6 +22,8 @@ class MealSection extends StatelessWidget {
   final ValueChanged<HomeMealItem> onReplace;
   final ValueChanged<HomeMealItem> onTapMeal;
   final ValueChanged<HomeMealItem> onMarkDone;
+  final bool allowReplace;
+  final bool allowMarkDone;
 
   @override
   Widget build(BuildContext context) {
@@ -27,15 +31,28 @@ class MealSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4, top: 4),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+          ),
+        ),
         ...items.map(
-          (item) => MealCard(
-            item: item,
-            isOffline: isOffline,
-            onReplace: () => onReplace(item),
-            onTap: () => onTapMeal(item),
-            onMarkDone: () => onMarkDone(item),
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: MealCard(
+              item: item,
+              isOffline: isOffline,
+              allowReplace: allowReplace,
+              allowMarkDone: allowMarkDone,
+              onReplace: () => onReplace(item),
+              onTap: () => onTapMeal(item),
+              onMarkDone: () => onMarkDone(item),
+            ),
           ),
         ),
       ],

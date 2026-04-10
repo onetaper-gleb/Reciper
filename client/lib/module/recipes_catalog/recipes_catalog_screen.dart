@@ -41,12 +41,20 @@ class _RecipesCatalogView extends StatefulWidget {
   State<_RecipesCatalogView> createState() => _RecipesCatalogViewState();
 }
 
-class _RecipesCatalogViewState extends State<_RecipesCatalogView> {
+class _RecipesCatalogViewState extends State<_RecipesCatalogView>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
-  final Set<String> _selectedFilters = <String>{};
-  bool _filtersExpanded = false;
+  final Set<String> _selectedAiFilters = <String>{};
+  int _filterPanelGeneration = 0;
+  late TabController _tabController;
 
-  static const List<String> _allFilters = [
+  List<Recipe> _aiRecipes = const [];
+  List<Recipe> _favoriteRecipes = const [];
+  bool _favoritesReady = false;
+  String? _aiError;
+
+  /// Фильтры только для подбора через AI (без «Избранного» — отдельная вкладка).
+  static const List<String> _aiFilterLabels = [
     'Из моего холодильника',
     'До 15 мин',
     'До 30 мин',
@@ -54,210 +62,356 @@ class _RecipesCatalogViewState extends State<_RecipesCatalogView> {
     'Обеды',
     'Ужины',
     'Перекусы',
-    'Избранное',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<RecipeBloc>().add(const RecipeFavoritesRequested());
+    });
+  }
+
+  void _onTabChanged() {
+    setState(() {});
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index == 1) {
+      context.read<RecipeBloc>().add(const RecipeFavoritesRequested());
+    }
+  }
+
+  @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Рецепты')),
-      body: StreamBuilder<bool>(
+    return BlocListener<RecipeBloc, RecipeState>(
+      listener: (context, state) {
+        if (state is RecipeResults) {
+          setState(() {
+            _aiRecipes = state.recipes;
+            _aiError = null;
+          });
+        } else if (state is RecipeFavorites) {
+          setState(() {
+            _favoriteRecipes = state.recipes;
+            _favoritesReady = true;
+          });
+        } else if (state is RecipeError) {
+          setState(() => _aiError = state.message);
+        }
+      },
+      child: StreamBuilder<bool>(
         stream: widget.connectivityService.isOnline,
         initialData: true,
         builder: (context, snapshot) {
           final isOnline = snapshot.data ?? true;
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: 'Поиск рецептов',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      onPressed: (isOnline || _selectedFilters.contains('Избранное'))
-                          ? () => _runSearch(context, isOnline)
-                          : null,
-                      icon: const Icon(Icons.send),
-                    ),
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Рецепты'),
+              bottom: TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.auto_awesome_outlined),
+                    text: 'Подбор с AI',
                   ),
-                  onSubmitted: (_) => _runSearch(context, isOnline),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => _filtersExpanded = !_filtersExpanded),
-                    icon: Icon(
-                      _filtersExpanded ? Icons.expand_less : Icons.expand_more,
-                    ),
-                    label: Text(
-                      _filtersExpanded ? 'Скрыть фильтры' : 'Показать фильтры',
-                    ),
+                  Tab(
+                    icon: Icon(Icons.favorite_outline),
+                    text: 'Избранное',
                   ),
-                ),
+                ],
               ),
-              if (_filtersExpanded)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _allFilters.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 3.5,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemBuilder: (_, index) {
-                      final f = _allFilters[index];
-                      return FilterChip(
-                        label: Text(f),
-                        selected: _selectedFilters.contains(f),
-                        onSelected: (v) => setState(() {
-                          if (v) {
-                            _selectedFilters.add(f);
-                          } else {
-                            _selectedFilters.remove(f);
-                          }
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              if (_selectedFilters.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      children: _selectedFilters
-                          .map(
-                            (f) => Chip(
-                              label: Text(f),
-                              onDeleted: () => setState(() => _selectedFilters.remove(f)),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-              ),
-              if (!isOnline)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Chip(label: Text('Офлайн-режим: доступны только избранные')),
-                ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: BlocBuilder<RecipeBloc, RecipeState>(
-                  builder: (context, state) {
-                    if (state is RecipeLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (state is RecipeError) {
-                      return Center(child: Text(state.message));
-                    }
-                    final recipes = switch (state) {
-                      RecipeResults() => state.recipes,
-                      RecipeFavorites() => state.recipes,
-                      _ => const <Recipe>[],
-                    };
-                    if (recipes.isEmpty && (state is RecipeResults || state is RecipeFavorites)) {
-                      return const Center(
-                        child: Text('Ничего не найдено по выбранным фильтрам'),
-                      );
-                    }
-                    if (recipes.isEmpty) {
-                      return const Center(
-                        child: Text('Введите запрос или выберите фильтр'),
-                      );
-                    }
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      itemBuilder: (_, index) {
-                        final recipe = recipes[index];
-                        return Card(
-                          child: ListTile(
-                            onTap: () => _openRecipeDetails(context, recipe),
-                            title: Text(recipe.title),
-                            subtitle: Text(
-                              '${recipe.cookingTimeMinutes} мин · ${recipe.calories.toStringAsFixed(0)} ккал',
-                            ),
-                            trailing: IconButton(
-                              onPressed: () {
-                                context
-                                    .read<RecipeBloc>()
-                                    .add(RecipeFavoriteToggled(recipe.id));
-                              },
-                              icon: Icon(
-                                recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
-                                color: recipe.isFavorite ? Colors.red : null,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: recipes.length,
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAiTab(context, isOnline),
+                _buildFavoritesTab(context),
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  void _runSearch(BuildContext context, bool isOnline) {
-    if (_selectedFilters.contains('Избранное') || !isOnline) {
-      context.read<RecipeBloc>().add(const RecipeFavoritesRequested());
-      return;
+  Widget _buildAiTab(BuildContext context, bool isOnline) {
+    return BlocBuilder<RecipeBloc, RecipeState>(
+      buildWhen: (prev, next) =>
+          next is RecipeLoading || next is RecipeError || next is RecipeResults,
+      builder: (context, state) {
+        final aiLoading = state is RecipeLoading && _tabController.index == 0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!isOnline)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: Theme.of(context)
+                    .colorScheme
+                    .errorContainer
+                    .withValues(alpha: 0.45),
+                child: Text(
+                  'Подбор через AI недоступен офлайн. Избранное доступно без сети.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                children: [
+                  Text(
+                    'Запрос к нейросети',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Опишите блюдо, ингредиенты или стиль — мы подберём варианты на сервере.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _controller,
+                    minLines: 1,
+                    maxLines: 3,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Например: лёгкий ужин с курицей до 30 минут',
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                    onSubmitted: (_) =>
+                        isOnline ? _runAiSearch(context) : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      key: ValueKey(_filterPanelGeneration),
+                      title: Text(
+                        'Фильтры',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      subtitle: Text(
+                        _selectedAiFilters.isEmpty
+                            ? 'Необязательно'
+                            : 'Выбрано: ${_selectedAiFilters.length}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _aiFilterLabels.map((label) {
+                            final selected = _selectedAiFilters.contains(label);
+                            return FilterChip(
+                              label: Text(label),
+                              selected: selected,
+                              onSelected: isOnline
+                                  ? (v) => setState(() {
+                                        if (v) {
+                                          _selectedAiFilters.add(label);
+                                        } else {
+                                          _selectedAiFilters.remove(label);
+                                        }
+                                      })
+                                  : null,
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: isOnline && !aiLoading
+                        ? () => _runAiSearch(context)
+                        : null,
+                    icon: const Icon(Icons.auto_awesome),
+                    label: Text(aiLoading ? 'Ищем рецепты…' : 'Найти рецепты'),
+                  ),
+                  if (_aiError != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _aiError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Text(
+                    'Результаты подбора',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  if (aiLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_aiRecipes.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'Здесь появятся рецепты после запроса к AI',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._aiRecipes.map(
+                      (recipe) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _RecipeCard(
+                          recipe: recipe,
+                          onOpen: () => _openRecipeDetails(context, recipe),
+                          onToggleFavorite: () {
+                            context
+                                .read<RecipeBloc>()
+                                .add(RecipeFavoriteToggled(recipe.id));
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoritesTab(BuildContext context) {
+    if (!_favoritesReady) {
+      return const Center(child: CircularProgressIndicator());
     }
-    if (_selectedFilters.contains('Из моего холодильника')) {
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<RecipeBloc>().add(const RecipeFavoritesRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      },
+      child: _favoriteRecipes.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.35,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Пока нет избранных рецептов.\n'
+                        'Нажмите ❤️ в подборе с AI или в карточке блюда из плана.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              itemCount: _favoriteRecipes.length,
+              separatorBuilder: (_, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final recipe = _favoriteRecipes[index];
+                return _RecipeCard(
+                  recipe: recipe,
+                  onOpen: () => _openRecipeDetails(context, recipe),
+                  onToggleFavorite: () {
+                    context
+                        .read<RecipeBloc>()
+                        .add(RecipeFavoriteToggled(recipe.id));
+                  },
+                );
+              },
+            ),
+    );
+  }
+
+  void _runAiSearch(BuildContext context) {
+    setState(() {
+      _aiError = null;
+      _filterPanelGeneration++;
+    });
+
+    if (_selectedAiFilters.contains('Из моего холодильника')) {
       context.read<RecipeBloc>().add(
             RecipeSuggestFromFridge(
               queryHint: _controller.text.trim(),
-              filters: _buildFilters(),
+              filters: _buildAiFilters(),
             ),
           );
       return;
     }
+
     context.read<RecipeBloc>().add(
           RecipeSearchRequested(
             query: _controller.text.trim(),
-            filters: _buildFilters(),
+            filters: _buildAiFilters(),
           ),
         );
   }
 
-  Map<String, dynamic> _buildFilters() {
+  Map<String, dynamic> _buildAiFilters() {
     final data = <String, dynamic>{};
-    if (_selectedFilters.contains('До 15 мин')) data['max_cooking_time_min'] = 15;
-    if (_selectedFilters.contains('До 30 мин')) data['max_cooking_time_min'] = 30;
-    if (_selectedFilters.contains('Завтраки')) data['meal_type'] = 'breakfast';
-    if (_selectedFilters.contains('Обеды')) data['meal_type'] = 'lunch';
-    if (_selectedFilters.contains('Ужины')) data['meal_type'] = 'dinner';
-    if (_selectedFilters.contains('Перекусы')) data['meal_type'] = 'snack';
+    if (_selectedAiFilters.contains('До 15 мин')) {
+      data['max_cooking_time_min'] = 15;
+    }
+    if (_selectedAiFilters.contains('До 30 мин')) {
+      data['max_cooking_time_min'] = 30;
+    }
+    if (_selectedAiFilters.contains('Завтраки')) {
+      data['meal_type'] = 'breakfast';
+    }
+    if (_selectedAiFilters.contains('Обеды')) {
+      data['meal_type'] = 'lunch';
+    }
+    if (_selectedAiFilters.contains('Ужины')) {
+      data['meal_type'] = 'dinner';
+    }
+    if (_selectedAiFilters.contains('Перекусы')) {
+      data['meal_type'] = 'snack';
+    }
     return data;
   }
 
   Future<void> _openRecipeDetails(BuildContext context, Recipe recipe) async {
     final deps = DependenciesScope.of(context);
     final ingredients = await deps.recipeRepository.getIngredientsByRecipeId(recipe.id);
+    final activePlan = await deps.mealPlanRepository.getActivePlan();
     if (!context.mounted) return;
+    final planId = activePlan?.mealPlan.id ?? 0;
     final placeholderMeal = Meal(
       id: -recipe.id,
       dayPlanId: -1,
@@ -266,6 +420,7 @@ class _RecipesCatalogViewState extends State<_RecipesCatalogView> {
       recipeId: recipe.id,
       isDone: false,
     );
+    final catalogContext = context;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => RecipeDetailScreen(
@@ -275,7 +430,12 @@ class _RecipesCatalogViewState extends State<_RecipesCatalogView> {
             ingredients: ingredients,
           ),
           meal: placeholderMeal,
-          mealPlanId: 0,
+          mealPlanId: planId,
+          onRecipeUpdated: () {
+            if (catalogContext.mounted) {
+              catalogContext.read<RecipeBloc>().add(const RecipeCatalogSyncRequested());
+            }
+          },
         ),
       ),
     );
@@ -296,5 +456,37 @@ class _RecipesCatalogViewState extends State<_RecipesCatalogView> {
         category: 'other',
       ),
     ];
+  }
+}
+
+class _RecipeCard extends StatelessWidget {
+  const _RecipeCard({
+    required this.recipe,
+    required this.onOpen,
+    required this.onToggleFavorite,
+  });
+
+  final Recipe recipe;
+  final VoidCallback onOpen;
+  final VoidCallback onToggleFavorite;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        onTap: onOpen,
+        title: Text(recipe.title),
+        subtitle: Text(
+          '${recipe.cookingTimeMinutes} мин · ${recipe.calories.toStringAsFixed(0)} ккал',
+        ),
+        trailing: IconButton(
+          onPressed: onToggleFavorite,
+          icon: Icon(
+            recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: recipe.isFavorite ? Colors.red : null,
+          ),
+        ),
+      ),
+    );
   }
 }

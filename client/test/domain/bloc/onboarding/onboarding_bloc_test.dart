@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:client/data/local/db/app_database.dart';
+import 'package:client/data/local/source/preferences_local_source.dart';
 import 'package:client/data/local/source/profile_local_source.dart';
 import 'package:client/data/local/source/settings_local_source.dart';
+import 'package:client/data/repository/preferences_repository.dart';
 import 'package:client/data/repository/profile_repository.dart';
 import 'package:client/domain/bloc/onboarding/onboarding_bloc.dart';
 import 'package:client/domain/bloc/onboarding/onboarding_event.dart';
@@ -18,6 +20,7 @@ import 'package:client/core/utils/nutrition_calculator.dart';
 void main() {
   late AppDatabase db;
   late ProfileRepository repository;
+  late PreferencesRepository preferencesRepository;
 
   OnboardingDraft fullDraft() => const OnboardingDraft(
         name: 'Иван',
@@ -35,6 +38,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     db = AppDatabase.test();
+    preferencesRepository = PreferencesRepository(
+      PreferencesLocalSource(db.profileDao),
+    );
     repository = ProfileRepository(
       profileLocalSource: ProfileLocalSource(db.profileDao),
       settingsLocalSource: SettingsLocalSource(prefs),
@@ -47,7 +53,7 @@ void main() {
 
   blocTest<OnboardingBloc, OnboardingState>(
     'emits editing with updated draft',
-    build: () => OnboardingBloc(repository),
+    build: () => OnboardingBloc(repository, preferencesRepository),
     act: (bloc) => bloc.add(OnboardingDraftUpdated(fullDraft())),
     expect: () => [
       OnboardingEditing(fullDraft()),
@@ -56,7 +62,7 @@ void main() {
 
   blocTest<OnboardingBloc, OnboardingState>(
     'OnboardingPrepareSummary attaches nutritionPreview',
-    build: () => OnboardingBloc(repository),
+    build: () => OnboardingBloc(repository, preferencesRepository),
     act: (bloc) async {
       bloc.add(OnboardingDraftUpdated(fullDraft()));
       bloc.add(const OnboardingPrepareSummary());
@@ -73,7 +79,7 @@ void main() {
 
   blocTest<OnboardingBloc, OnboardingState>(
     'OnboardingFinished saves profile, sets flag, emits completed',
-    build: () => OnboardingBloc(repository),
+    build: () => OnboardingBloc(repository, preferencesRepository),
     act: (bloc) async {
       bloc.add(OnboardingDraftUpdated(fullDraft()));
       bloc.add(const OnboardingFinished());
@@ -88,12 +94,16 @@ void main() {
       expect(profile, isNotNull);
       expect(profile!.name, 'Иван');
       expect(await repository.hasCompletedOnboarding(), isTrue);
+      final prefs = await preferencesRepository.getPreferences();
+      expect(prefs, isNotNull);
+      expect(prefs!.allergies, contains('lactose_free'));
+      expect(prefs.allergies, contains('Мёд'));
     },
   );
 
   blocTest<OnboardingBloc, OnboardingState>(
     'OnboardingFinished with invalid draft emits editing with error',
-    build: () => OnboardingBloc(repository),
+    build: () => OnboardingBloc(repository, preferencesRepository),
     act: (bloc) async {
       bloc.add(
         const OnboardingDraftUpdated(

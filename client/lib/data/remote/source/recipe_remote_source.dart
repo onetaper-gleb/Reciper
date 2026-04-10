@@ -3,6 +3,8 @@ import 'package:client/domain/models/enums/difficulty.dart';
 import 'package:client/domain/models/ingredient.dart';
 import 'package:client/domain/models/recipe.dart';
 
+import 'package:client/core/utils/client_request_clock.dart';
+
 import '../api/reciper_api.dart';
 
 abstract class RecipeRemoteSource {
@@ -43,6 +45,7 @@ class RecipeRemoteSourceImpl implements RecipeRemoteSource {
       'query': query,
       'filters': filters,
       'fridge_products': fridgeProducts,
+      'client_context': ClientRequestClock.clientContextJson(),
     });
     final raw = (data['recipes'] as List?) ?? const [];
     return raw
@@ -61,6 +64,7 @@ class RecipeRemoteSourceImpl implements RecipeRemoteSource {
       'prompt': prompt,
       'preferences': preferences,
       'nutrition_target': nutritionTarget,
+      'client_context': ClientRequestClock.clientContextJson(),
     });
     final recipe = (data['recipe'] as Map?)?.cast<String, dynamic>() ?? const {};
     return _toPayload(recipe);

@@ -17,6 +17,7 @@ class _FakeReciperApi extends ReciperApi {
     File image, {
     String? existingProductsJson,
     String scanMode = 'replace',
+    String? clientLocalDatetime,
   }) async {
     capturedExistingProductsJson = existingProductsJson;
     capturedScanMode = scanMode;

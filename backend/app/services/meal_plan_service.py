@@ -1,3 +1,4 @@
+import json
 import logging
 
 from app.core.exceptions import AIServiceError, ValidationError
@@ -7,7 +8,8 @@ from app.schemas.meal_plan import (
     ReplaceMealRequest,
     ReplaceMealResponse,
 )
-from app.services.ai.gemini_client import GeminiClient
+from app.services.ai.ai_text_client import AITextClient
+from app.services.ai.gemini_client import GeminiTextClient
 from app.services.ai.prompt_builder import PromptBuilder
 from app.services.ai.response_parser import ResponseParser
 
@@ -18,17 +20,17 @@ class MealPlanService:
     def __init__(
         self,
         prompt_builder: PromptBuilder | None = None,
-        gemini_client: GeminiClient | None = None,
+        ai_client: AITextClient | None = None,
         response_parser: ResponseParser | None = None,
     ) -> None:
         self.prompt_builder = prompt_builder or PromptBuilder()
-        self.gemini_client = gemini_client
+        self.ai_client = ai_client
         self.response_parser = response_parser or ResponseParser()
 
-    def _gemini(self) -> GeminiClient:
-        if self.gemini_client is None:
-            self.gemini_client = GeminiClient()
-        return self.gemini_client
+    def _ai(self) -> AITextClient:
+        if self.ai_client is None:
+            self.ai_client = GeminiTextClient()
+        return self.ai_client
 
     def generate_plan(self, request: GeneratePlanRequest) -> GeneratePlanResponse:
         logger.info("generate_plan: profile=%s options=%s", request.profile.model_dump(), request.plan_options.model_dump())
@@ -38,8 +40,9 @@ class MealPlanService:
             plan_options=request.plan_options.model_dump(),
             fridge_products=[p.model_dump() for p in request.fridge_products],
             notes=request.additional_notes,
+            client_context=request.client_context,
         )
-        ai_text = self._gemini().generate_text(user_prompt, system_prompt)
+        ai_text = self._ai().generate_text(user_prompt, system_prompt)
         logger.debug("generate_plan: ai_text_head=%s", ai_text[:500])
         try:
             response = self.response_parser.parse_json_response(ai_text, GeneratePlanResponse)
@@ -49,7 +52,7 @@ class MealPlanService:
                 required_top_level_keys=["plan", "weekly_summary"],
                 original_response=ai_text,
             )
-            ai_text_2 = self._gemini().generate_text(repair_prompt, system_prompt)
+            ai_text_2 = self._ai().generate_text(repair_prompt, system_prompt)
             response = self.response_parser.parse_json_response(ai_text_2, GeneratePlanResponse)
         self._validate_generate_response(response)
         return response
@@ -62,8 +65,10 @@ class MealPlanService:
             day_context=request.day_context.model_dump(),
             preferences=request.preferences.model_dump(),
             fridge=[p.model_dump() for p in request.fridge_products],
+            client_context=request.client_context,
         )
-        ai_text = self._gemini().generate_text(user_prompt, system_prompt)
+        ai_text = self._ai().generate_text(user_prompt, system_prompt)
+        ai_text = self._coerce_replace_payload(ai_text)
         logger.debug("replace_meal: ai_text_head=%s", ai_text[:500])
         try:
             response = self.response_parser.parse_json_response(ai_text, ReplaceMealResponse)
@@ -73,10 +78,30 @@ class MealPlanService:
                 required_top_level_keys=["recipe"],
                 original_response=ai_text,
             )
-            ai_text_2 = self._gemini().generate_text(repair_prompt, system_prompt)
+            ai_text_2 = self._ai().generate_text(repair_prompt, system_prompt)
+            ai_text_2 = self._coerce_replace_payload(ai_text_2)
             response = self.response_parser.parse_json_response(ai_text_2, ReplaceMealResponse)
         self._validate_replace_response(request, response)
         return response
+
+    @staticmethod
+    def _coerce_replace_payload(raw_text: str) -> str:
+        """Accept accidental full-plan payloads and convert them to ReplaceMealResponse shape."""
+        try:
+            data = json.loads(raw_text)
+        except Exception:  # noqa: BLE001
+            return raw_text
+        if isinstance(data, dict) and isinstance(data.get("recipe"), dict):
+            return raw_text
+        if isinstance(data, dict) and isinstance(data.get("plan"), dict):
+            days = data.get("plan", {}).get("days", [])
+            if isinstance(days, list) and days:
+                meals = days[0].get("meals", []) if isinstance(days[0], dict) else []
+                if isinstance(meals, list) and meals:
+                    recipe = meals[0].get("recipe", {}) if isinstance(meals[0], dict) else {}
+                    if isinstance(recipe, dict) and recipe:
+                        return json.dumps({"recipe": recipe}, ensure_ascii=False)
+        return raw_text
 
     @staticmethod
     def _validate_generate_response(response: GeneratePlanResponse) -> None:

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:client/core/errors/user_facing_error.dart';
 import '../../../data/repository/recipe_repository.dart';
 import '../../models/recipe.dart';
 import 'recipe_event.dart';
@@ -19,6 +20,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
     on<RecipeSuggestFromFridge>(_onFromFridge);
     on<RecipeFavoritesRequested>(_onFavorites);
     on<RecipeFavoriteToggled>(_onToggleFavorite);
+    on<RecipeCatalogSyncRequested>(_onCatalogSync);
   }
 
   final RecipeRepositoryBase _repo;
@@ -39,7 +41,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       _lastResults = recipes;
       emit(RecipeResults(recipes));
     } catch (e) {
-      emit(RecipeError('$e'));
+      emit(RecipeError(userFacingErrorMessage(e)));
     }
   }
 
@@ -70,7 +72,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       _lastResults = recipes;
       emit(RecipeResults(recipes));
     } catch (e) {
-      emit(RecipeError('$e'));
+      emit(RecipeError(userFacingErrorMessage(e)));
     }
   }
 
@@ -98,7 +100,28 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       emit(RecipeResults(refreshed));
       return;
     }
-    final favorites = await _repo.getFavorites();
-    emit(RecipeFavorites(favorites));
+    if (state is RecipeFavorites) {
+      final favorites = await _repo.getFavorites();
+      emit(RecipeFavorites(favorites));
+    }
+  }
+
+  Future<void> _onCatalogSync(
+    RecipeCatalogSyncRequested event,
+    Emitter<RecipeState> emit,
+  ) async {
+    if (state is RecipeResults) {
+      final refreshed = <Recipe>[];
+      for (final item in _lastResults) {
+        refreshed.add((await _repo.getRecipeById(item.id)) ?? item);
+      }
+      _lastResults = refreshed;
+      emit(RecipeResults(refreshed));
+      return;
+    }
+    if (state is RecipeFavorites) {
+      final favorites = await _repo.getFavorites();
+      emit(RecipeFavorites(favorites));
+    }
   }
 }

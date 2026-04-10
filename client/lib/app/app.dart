@@ -20,10 +20,18 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      theme: AppTheme.light,
-      home: _AppHome(onOnboardingFinished: _onOnboardingFinished),
+    final deps = DependenciesScope.of(context);
+    return ListenableBuilder(
+      listenable: deps.themeModeNotifier,
+      builder: (context, _) {
+        return MaterialApp(
+          title: AppConstants.appName,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: deps.themeModeNotifier.value,
+          home: _AppHome(onOnboardingFinished: _onOnboardingFinished),
+        );
+      },
     );
   }
 }
@@ -42,7 +50,10 @@ class _AppHome extends StatelessWidget {
     // print('AppHome: done = $done');
     if (!done) {
       return BlocProvider(
-        create: (_) => OnboardingBloc(deps.profileRepository),
+        create: (_) => OnboardingBloc(
+          deps.profileRepository,
+          deps.preferencesRepository,
+        ),
         child: OnboardingScreen(onFinished: onOnboardingFinished),
       );
     }

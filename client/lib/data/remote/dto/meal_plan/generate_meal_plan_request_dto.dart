@@ -13,6 +13,7 @@ abstract class GenerateMealPlanRequestDto with _$GenerateMealPlanRequestDto {
     required Map<String, dynamic> planOptions,
     required List<Map<String, dynamic>> fridgeProducts,
     String? additionalNotes,
+    @JsonKey(name: 'client_context') Map<String, dynamic>? clientContext,
   }) = _GenerateMealPlanRequestDto;
 
   factory GenerateMealPlanRequestDto.fromJson(Map<String, dynamic> json) =>

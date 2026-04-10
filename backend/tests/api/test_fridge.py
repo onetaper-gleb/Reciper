@@ -12,7 +12,13 @@ from app.main import app  # noqa: E402
 
 
 class FakeFridgeScanService:
-    def scan_fridge(self, image_bytes: bytes, existing_products_json: str | None, scan_mode: str):  # noqa: ANN001
+    def scan_fridge(  # noqa: ANN001
+        self,
+        image_bytes: bytes,
+        existing_products_json: str | None,
+        scan_mode: str,
+        client_local_datetime_iso: str | None = None,
+    ):
         assert image_bytes
         assert scan_mode in {"replace", "append"}
         if existing_products_json:

@@ -6,7 +6,8 @@ from app.schemas.recipe import (
     RecipeSuggestionRequest,
     RecipeSuggestionResponse,
 )
-from app.services.ai.gemini_client import GeminiClient
+from app.services.ai.ai_text_client import AITextClient
+from app.services.ai.gemini_client import GeminiTextClient
 from app.services.ai.prompt_builder import PromptBuilder
 from app.services.ai.response_parser import ResponseParser
 
@@ -17,17 +18,17 @@ class RecipeService:
     def __init__(
         self,
         prompt_builder: PromptBuilder | None = None,
-        gemini_client: GeminiClient | None = None,
+        ai_client: AITextClient | None = None,
         response_parser: ResponseParser | None = None,
     ) -> None:
         self.prompt_builder = prompt_builder or PromptBuilder()
-        self.gemini_client = gemini_client
+        self.ai_client = ai_client
         self.response_parser = response_parser or ResponseParser()
 
-    def _gemini(self) -> GeminiClient:
-        if self.gemini_client is None:
-            self.gemini_client = GeminiClient()
-        return self.gemini_client
+    def _ai(self) -> AITextClient:
+        if self.ai_client is None:
+            self.ai_client = GeminiTextClient()
+        return self.ai_client
 
     def suggest_recipes(self, request: RecipeSuggestionRequest) -> RecipeSuggestionResponse:
         fridge_trimmed = [item.model_dump() for item in request.fridge_products][:25]
@@ -42,6 +43,7 @@ class RecipeService:
             query=request.query,
             filters=request.filters,
             fridge_products=fridge_trimmed,
+            client_context=request.client_context,
         )
         logger.debug(
             "suggest_recipes prompts: system_len=%s user_len=%s user_preview=%s",
@@ -49,7 +51,7 @@ class RecipeService:
             len(user_prompt),
             user_prompt[:1000],
         )
-        ai_text = self._gemini().generate_text(user_prompt, system_prompt)
+        ai_text = self._ai().generate_text(user_prompt, system_prompt)
         logger.debug(
             "suggest_recipes ai_text_len=%s ai_text_preview=%s",
             len(ai_text),
@@ -69,6 +71,7 @@ class RecipeService:
             prompt=request.prompt,
             preferences=request.preferences.model_dump(),
             nutrition_target=request.nutrition_target.model_dump() if request.nutrition_target else None,
+            client_context=request.client_context,
         )
         logger.debug(
             "generate_recipe prompts: system_len=%s user_len=%s user_preview=%s",
@@ -76,7 +79,7 @@ class RecipeService:
             len(user_prompt),
             user_prompt[:1000],
         )
-        ai_text = self._gemini().generate_text(user_prompt, system_prompt)
+        ai_text = self._ai().generate_text(user_prompt, system_prompt)
         logger.debug(
             "generate_recipe ai_text_len=%s ai_text_preview=%s",
             len(ai_text),

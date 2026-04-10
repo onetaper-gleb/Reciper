@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:client/core/utils/client_request_clock.dart';
+
 import '../api/reciper_api.dart';
 
 class RemoteFridgeProduct {
@@ -40,6 +42,7 @@ class FridgeRemoteSourceImpl implements FridgeRemoteSource {
       image,
       existingProductsJson: existingProducts == null ? null : jsonEncode(existingProducts),
       scanMode: appendMode ? 'append' : 'replace',
+      clientLocalDatetime: ClientRequestClock.localDateTimeIso8601(),
     );
     final rows = (data['recognized_products'] as List?) ?? const [];
     return rows

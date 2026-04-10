@@ -33,17 +33,27 @@ final class MealReplacingInProgress extends MealPlanState {
 
 final class MealPlanLoaded extends MealPlanState {
   const MealPlanLoaded({
+    required this.activePlan,
     required this.plan,
     required this.selectedDate,
     this.dayPlan,
+    this.isHistoricalView = false,
+    this.missingHistoricalPlan = false,
   });
 
+  /// Current active meal plan graph (mutations and “new plan” flow use this).
+  final StoredMealPlanGraph activePlan;
+
+  /// Graph shown for [selectedDate] (historical snapshot or [activePlan]).
   final StoredMealPlanGraph plan;
   final DateTime selectedDate;
   final DayPlan? dayPlan;
+  final bool isHistoricalView;
+  final bool missingHistoricalPlan;
 
   @override
-  List<Object?> get props => [plan, selectedDate, dayPlan];
+  List<Object?> get props =>
+      [activePlan, plan, selectedDate, dayPlan, isHistoricalView, missingHistoricalPlan];
 }
 
 final class MealPlanError extends MealPlanState {
@@ -52,5 +62,18 @@ final class MealPlanError extends MealPlanState {
 
   @override
   List<Object?> get props => [message];
+}
+
+final class MealPlanOperationError extends MealPlanState {
+  const MealPlanOperationError({
+    required this.previous,
+    required this.message,
+  });
+
+  final MealPlanLoaded previous;
+  final String message;
+
+  @override
+  List<Object?> get props => [previous, message];
 }
 

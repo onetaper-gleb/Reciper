@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math';
 
+import 'package:client/core/errors/user_facing_error.dart';
 import '../../../data/repository/fridge_repository.dart';
 import 'fridge_event.dart';
 import 'fridge_state.dart';
@@ -43,7 +44,7 @@ class FridgeBloc extends Bloc<FridgeEvent, FridgeState> {
           : await _repo.scanImage(event.image);
       emit(FridgeScanResult(recognizedProducts: products, imageFile: event.image));
     } catch (e) {
-      emit(FridgeError('$e'));
+      emit(FridgeError(userFacingErrorMessage(e)));
     }
   }
 
@@ -59,7 +60,7 @@ class FridgeBloc extends Bloc<FridgeEvent, FridgeState> {
           : await _repo.appendScan(event.image, existing);
       emit(FridgeScanResult(recognizedProducts: products, imageFile: event.image));
     } catch (e) {
-      emit(FridgeError('$e'));
+      emit(FridgeError(userFacingErrorMessage(e)));
     }
   }
 

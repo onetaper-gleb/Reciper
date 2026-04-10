@@ -59,4 +59,60 @@ abstract final class AppTheme {
       textTheme: AppTextStyles.textTheme(scheme),
     );
   }
+
+  static ThemeData get dark {
+    const scheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF66BB6A),
+      onPrimary: Colors.black,
+      secondary: AppColors.secondary,
+      onSecondary: Colors.white,
+      error: AppColors.error,
+      onError: Colors.white,
+      surface: Color(0xFF121212),
+      onSurface: Color(0xFFE8E8E8),
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surface,
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1E1E1E),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: scheme.outline.withValues(alpha: 0.35), width: 0.5),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF1E1E1E),
+        indicatorColor: scheme.primary.withValues(alpha: 0.2),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontFamily: AppTextStyles.fontFamily,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.7),
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.7),
+            size: 24,
+          );
+        }),
+      ),
+      textTheme: AppTextStyles.textTheme(scheme),
+    );
+  }
 }

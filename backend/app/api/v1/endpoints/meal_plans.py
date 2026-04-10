@@ -9,7 +9,7 @@ from app.schemas.meal_plan import (
     ReplaceMealRequest,
     ReplaceMealResponse,
 )
-from app.services.ai.gemini_client import GeminiTimeoutError
+from app.services.ai.exceptions import AITimeoutError as GeminiTimeoutError
 from app.services.meal_plan_service import MealPlanService
 
 

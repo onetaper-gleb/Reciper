@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -5,9 +6,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+from app.schemas.common import ClientContextSchema  # noqa: E402
+from app.schemas.fridge import RecognizedProductSchema  # noqa: E402
 from app.services.ai.prompt_builder import PromptBuilder  # noqa: E402
 from app.services.ai.prompt_loader import PromptLoader  # noqa: E402
-from app.schemas.fridge import RecognizedProductSchema  # noqa: E402
 
 
 def test_build_meal_plan_prompt_contains_user_fields() -> None:
@@ -30,6 +32,7 @@ def test_build_meal_plan_prompt_contains_user_fields() -> None:
     assert "7" in user_prompt
     assert "chicken" in user_prompt
     assert "No spicy food" in user_prompt
+    assert "Client context" in user_prompt or "Клиент не передал" in user_prompt
 
 
 def test_build_replace_and_recipe_prompts_include_inputs() -> None:
@@ -87,4 +90,20 @@ def test_build_fridge_prompt_serializes_pydantic_models() -> None:
 
     assert "Яйца" in fridge_prompt
     assert "confidence" in fridge_prompt
+
+
+def test_client_context_appears_in_prompts_when_provided() -> None:
+    loader = PromptLoader(prompts_root=PROJECT_ROOT / "prompts")
+    builder = PromptBuilder(loader=loader)
+    ctx = ClientContextSchema(local_datetime=datetime(2026, 4, 10, 12, 0, tzinfo=timezone.utc))
+
+    _, user_meal = builder.build_meal_plan_prompt(
+        profile={"age": 30},
+        preferences={},
+        plan_options={"days": 1},
+        fridge_products=[],
+        notes="",
+        client_context=ctx,
+    )
+    assert "2026-04-10" in user_meal
 

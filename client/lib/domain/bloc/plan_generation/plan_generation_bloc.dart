@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:client/core/errors/user_facing_error.dart';
 import 'package:client/core/utils/app_logger.dart';
 import 'package:client/data/repository/meal_plan_repository.dart';
 import 'package:client/data/repository/preferences_repository.dart';
@@ -11,14 +12,21 @@ import 'package:client/domain/models/enums/goal.dart';
 import 'plan_generation_event.dart';
 import 'plan_generation_state.dart';
 
+typedef FridgeProductsJsonLoader = Future<List<Map<String, dynamic>>> Function();
+
 class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> {
   PlanGenerationBloc({
     required MealPlanRepository mealPlanRepository,
     required ProfileRepository profileRepository,
     required PreferencesRepository preferencesRepository,
+    FridgeProductsJsonLoader? fridgeProductsJsonLoader,
+    DateTime? planStartDate,
   })  : _repo = mealPlanRepository,
         _profileRepo = profileRepository,
         _preferencesRepo = preferencesRepository,
+        _planStartDate = planStartDate,
+        _fridgeProductsJsonLoader =
+            fridgeProductsJsonLoader ?? (() async => const <Map<String, dynamic>>[]),
         super(const PlanGenerationStepState(currentStep: 'start', collectedData: {})) {
     on<StepCompleted>(_onStepCompleted);
     on<GenerationRequested>(_onGenerationRequested);
@@ -29,6 +37,8 @@ class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> 
   final MealPlanRepository _repo;
   final ProfileRepository _profileRepo;
   final PreferencesRepository _preferencesRepo;
+  final FridgeProductsJsonLoader _fridgeProductsJsonLoader;
+  final DateTime? _planStartDate;
 
   Future<void> _onStepCompleted(
     StepCompleted event,
@@ -48,7 +58,9 @@ class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> 
   ) async {
     final collected = state is PlanGenerationStepState
         ? (state as PlanGenerationStepState).collectedData
-        : <String, dynamic>{};
+        : state is PlanGenerationError
+            ? (state as PlanGenerationError).collectedData
+            : <String, dynamic>{};
     emit(PlanGenerating(collected));
     try {
       final profile = await _profileRepo.getProfile();
@@ -63,6 +75,13 @@ class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> 
       }
 
       final prefs = await _preferencesRepo.getPreferences();
+
+      final period = collected['period'] as Map? ?? {};
+      final cookWhen = collected['cook_when'] as Map? ?? {};
+      final fridgePrefs = collected['fridge'] as Map? ?? {};
+      final useFridge = fridgePrefs['use'] == true;
+      final fridgeProductsJson =
+          useFridge ? await _fridgeProductsJsonLoader() : const <Map<String, dynamic>>[];
 
       final plan = await _repo.generatePlan(
         profileJson: {
@@ -82,19 +101,29 @@ class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> 
           'max_cooking_time_min': prefs?.maxCookingMinutes ?? 30,
           'budget_level': prefs != null ? _mapBudget(prefs.budget) : 'medium',
         },
-        planOptionsJson: {
-          'days': (collected['period'] as Map?)?['days'] ?? 7,
-          'meals_per_day': (collected['period'] as Map?)?['meals_per_day'] ?? 5,
-          'cook_when': 'evening',
-          'use_fridge_products': true,
-        },
-        fridgeProductsJson: const [],
-        additionalNotes: collected['notes']?['text'] as String?,
+        planOptionsJson: () {
+          final opts = <String, dynamic>{
+            'days': period['days'] ?? 7,
+            'meals_per_day': period['meals_per_day'] ?? 5,
+            'cook_when': cookWhen['value'] ?? 'evening',
+            'use_fridge_products': useFridge,
+          };
+          final anchor = _planStartDate;
+          if (anchor != null) {
+            opts['start_date'] =
+                '${anchor.year.toString().padLeft(4, '0')}-'
+                '${anchor.month.toString().padLeft(2, '0')}-'
+                '${anchor.day.toString().padLeft(2, '0')}';
+          }
+          return opts;
+        }(),
+        fridgeProductsJson: fridgeProductsJson,
+        additionalNotes: _optionalNotes(collected['notes']),
       );
       emit(PlanGenerated(plan: plan));
     } catch (e, st) {
       AppLogger.warning('PlanGenerationBloc: generation failed', e, st);
-      emit(PlanGenerationError('$e', collectedData: collected));
+      emit(PlanGenerationError(userFacingErrorMessage(e), collectedData: collected));
     }
   }
 
@@ -125,6 +154,13 @@ class PlanGenerationBloc extends Bloc<PlanGenerationEvent, PlanGenerationState> 
         DietType.vegan => 'vegan',
         DietType.keto => 'keto',
       };
+
+  String? _optionalNotes(dynamic notesEntry) {
+    if (notesEntry is! Map) return null;
+    final raw = notesEntry['text'];
+    if (raw is! String || raw.trim().isEmpty) return null;
+    return raw.trim();
+  }
 
   void _onAccepted(PlanAccepted event, Emitter<PlanGenerationState> emit) {
     // UI can navigate away; repository already stored active plan.

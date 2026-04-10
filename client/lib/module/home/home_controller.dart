@@ -15,6 +15,12 @@ class NutritionProgress {
     required this.proteinProgress,
     required this.fatProgress,
     required this.carbsProgress,
+    required this.consumedProteinG,
+    required this.targetProteinG,
+    required this.consumedFatG,
+    required this.targetFatG,
+    required this.consumedCarbsG,
+    required this.targetCarbsG,
   });
 
   final double targetCalories;
@@ -22,6 +28,12 @@ class NutritionProgress {
   final double proteinProgress;
   final double fatProgress;
   final double carbsProgress;
+  final double consumedProteinG;
+  final double targetProteinG;
+  final double consumedFatG;
+  final double targetFatG;
+  final double consumedCarbsG;
+  final double targetCarbsG;
 }
 
 abstract final class HomeController {
@@ -71,6 +83,12 @@ abstract final class HomeController {
       proteinProgress: _ratio(consumedProtein, targetProtein),
       fatProgress: _ratio(consumedFat, targetFat),
       carbsProgress: _ratio(consumedCarbs, targetCarbs),
+      consumedProteinG: consumedProtein,
+      targetProteinG: targetProtein,
+      consumedFatG: consumedFat,
+      targetFatG: targetFat,
+      consumedCarbsG: consumedCarbs,
+      targetCarbsG: targetCarbs,
     );
   }
 

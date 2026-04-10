@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../core/utils/calendar_week.dart';
 import '../local/db/app_database.dart';
 import '../local/db/db_enums.dart';
 import '../remote/source/meal_plan_remote_source.dart';
@@ -167,6 +168,24 @@ class MealPlanRepository {
     return _loadStoredGraph(active.first);
   }
 
+  /// Latest stored plan (by `createdAt`) whose date range includes [calendarDate] (local date).
+  Future<StoredMealPlanGraph?> getPlanCoveringDate(DateTime calendarDate) async {
+    final all = await _db.mealPlanDao.getAllMealPlans();
+    final target = CalendarWeek.dateOnly(calendarDate);
+    MealPlanEntry? best;
+    for (final row in all) {
+      final start = CalendarWeek.dateOnly(row.startDate);
+      final end = CalendarWeek.dateOnly(row.endDate);
+      if (!target.isBefore(start) && !target.isAfter(end)) {
+        if (best == null || row.createdAt.isAfter(best.createdAt)) {
+          best = row;
+        }
+      }
+    }
+    if (best == null) return null;
+    return _loadStoredGraph(best);
+  }
+
   Future<StoredMealPlanGraph?> getPlanByDate(DateTime date) async {
     final active = await getActivePlan();
     if (active == null) return null;
@@ -191,6 +210,10 @@ class MealPlanRepository {
   Future<void> markMealCompleted(int mealId) async {
     final row = await _db.mealPlanDao.getMealById(mealId);
     if (row == null) return;
+    final day = await _db.mealPlanDao.getDayPlanById(row.dayPlanId);
+    if (day == null) return;
+    final mealDay = CalendarWeek.dateOnly(day.planDate);
+    if (mealDay.isAfter(CalendarWeek.todayDateOnly())) return;
     await _db.mealPlanDao.updateMeal(row.copyWith(isDone: true));
   }
 
@@ -227,6 +250,7 @@ class MealPlanRepository {
     if (currentRecipe == null) return;
 
     final generated = await _remote.replaceMeal(requestJson: requestJson);
+    final stepsJson = jsonEncode(generated.steps.map((s) => s.toJson()).toList());
     final newRecipeId = await _db.recipeDao.insertRecipe(
       RecipesCompanion.insert(
         title: generated.title,
@@ -238,9 +262,20 @@ class MealPlanRepository {
         fatG: generated.fatG,
         carbsG: generated.carbsG,
         isFavorite: Value(currentRecipe.isFavorite),
-        stepsJson: currentRecipe.stepsJson,
+        stepsJson: stepsJson,
       ),
     );
+    for (final ing in generated.ingredients) {
+      await _db.recipeDao.insertIngredient(
+        IngredientsCompanion.insert(
+          recipeId: newRecipeId,
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+          category: ing.category,
+        ),
+      );
+    }
     await _db.mealPlanDao.updateMeal(meal.copyWith(recipeId: newRecipeId));
   }
 
@@ -255,7 +290,8 @@ class MealPlanRepository {
     );
 
     final dayRows = await _db.mealPlanDao.getAllDayPlans();
-    final planDayRows = dayRows.where((d) => d.mealPlanId == plan.id).toList();
+    final planDayRows = dayRows.where((d) => d.mealPlanId == plan.id).toList()
+      ..sort((a, b) => a.planDate.compareTo(b.planDate));
     final days = planDayRows
         .map((d) => DayPlan(id: d.id, mealPlanId: d.mealPlanId, date: d.planDate))
         .toList();

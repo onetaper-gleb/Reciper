@@ -8,4 +8,14 @@ abstract final class StorageKeys {
   static const String onboardingCompleted = 'settings_onboarding_completed';
 
   static const String notificationsEnabled = 'settings_notifications_enabled';
+
+  static const String reminderBreakfastTime = 'settings_reminder_breakfast';
+
+  static const String reminderLunchTime = 'settings_reminder_lunch';
+
+  static const String reminderDinnerTime = 'settings_reminder_dinner';
+
+  static const String weighReminderEnabled = 'settings_weigh_reminder_enabled';
+
+  static const String weighReminderTime = 'settings_weigh_reminder_time';
 }

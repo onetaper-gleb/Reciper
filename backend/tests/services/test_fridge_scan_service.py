@@ -10,11 +10,11 @@ from app.services.fridge_scan_service import FridgeScanService  # noqa: E402
 
 
 class StubPromptBuilder:
-    def build_fridge_scan_prompt(self, existing_products):  # noqa: ANN001
+    def build_fridge_scan_prompt(self, existing_products, client_context=None):  # noqa: ANN001
         return "system", f"user prompt {existing_products}"
 
 
-class StubGeminiClient:
+class StubAITextClient:
     def __init__(self, response_text: str) -> None:
         self.response_text = response_text
 
@@ -30,7 +30,7 @@ class StubResponseParser:
 def test_scan_fridge_replace_parses_ai_response() -> None:
     service = FridgeScanService(
         prompt_builder=StubPromptBuilder(),
-        gemini_client=StubGeminiClient(
+        ai_client=StubAITextClient(
             """
             {
               "recognized_products": [
@@ -51,7 +51,7 @@ def test_scan_fridge_replace_parses_ai_response() -> None:
 def test_scan_fridge_append_merges_products_by_name_and_unit() -> None:
     service = FridgeScanService(
         prompt_builder=StubPromptBuilder(),
-        gemini_client=StubGeminiClient(
+        ai_client=StubAITextClient(
             """
             {
               "recognized_products": [
@@ -75,7 +75,7 @@ def test_scan_fridge_append_merges_products_by_name_and_unit() -> None:
 def test_scan_fridge_append_accepts_existing_without_confidence() -> None:
     service = FridgeScanService(
         prompt_builder=StubPromptBuilder(),
-        gemini_client=StubGeminiClient(
+        ai_client=StubAITextClient(
             """
             {
               "recognized_products": [

@@ -68,5 +68,17 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Микрофон нужен для голосовых команд в режиме готовки.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Распознавание речи используется для управления шагами готовки голосом.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+		</array>
+		<key>BGTaskSchedulerPermittedIdentifiers</key>
+		<array>
+			<string>com.pravera.flutter_foreground_task.refresh</string>
+		</array>
 	</dict>
 </plist>

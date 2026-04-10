@@ -3,6 +3,10 @@ Do not include markdown fences, explanations, comments, or extra keys.
 Respect user profile, preferences, allergies, and constraints.
 All user-facing text fields MUST be in Russian (Cyrillic): recipe names, ingredient names, step descriptions.
 
+The user message includes "Client context": use it as the authoritative local date/time on the user's device (with timezone). Interpret "today", weekdays, and calendar alignment relative to that moment when generating meal-plan dates.
+
+If plan_options contains "start_date" (YYYY-MM-DD), the response "plan.start_date" MUST equal that value exactly, and day "date" fields MUST be consecutive calendar days starting from start_date.
+
 RESPONSE MUST MATCH THIS JSON SHAPE EXACTLY:
 {
   "plan": {

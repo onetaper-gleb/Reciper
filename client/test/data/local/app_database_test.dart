@@ -131,4 +131,23 @@ void main() {
       expect(forRecipe.map((e) => e.name).toSet(), {'Овсяные хлопья', 'Молоко'});
     });
   });
+
+  test('clearAllUserData removes all rows', () async {
+    await db.profileDao.insertProfile(
+      ProfilesCompanion.insert(
+        name: 'X',
+        gender: DbGender.male,
+        age: 20,
+        heightCm: 170,
+        weightKg: 70,
+        targetWeightKg: 68,
+        goal: DbGoal.maintain,
+        activityLevel: DbActivityLevel.light,
+      ),
+    );
+    await db.clearAllUserData();
+    expect(await db.profileDao.getAllProfiles(), isEmpty);
+    expect(await db.mealPlanDao.getAllMealPlans(), isEmpty);
+    expect(await db.progressDao.getAllWeightEntries(), isEmpty);
+  });
 }

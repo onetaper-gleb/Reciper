@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,11 +21,14 @@ import 'package:client/data/repository/preferences_repository.dart';
 import 'package:client/data/repository/settings_repository.dart';
 import 'package:client/data/repository/fridge_repository.dart';
 import 'package:client/data/repository/recipe_repository.dart';
+import 'package:client/data/repository/progress_repository.dart';
 import 'package:client/data/repository/shopping_list_repository.dart';
 import 'package:client/domain/bloc/profile/profile_bloc.dart';
 import 'package:client/domain/bloc/profile/profile_event.dart';
 import 'package:client/domain/bloc/meal_plan/meal_plan_bloc.dart';
 import 'package:client/domain/bloc/meal_plan/meal_plan_event.dart';
+import 'package:client/domain/bloc/progress/progress_bloc.dart';
+import 'package:client/domain/bloc/progress/progress_event.dart';
 import 'package:client/network/http_client.dart';
 import 'package:client/services/connectivity_service.dart';
 
@@ -80,28 +84,42 @@ void main() {
         remoteSource: recipeRemoteSource,
       ),
       shoppingListRepository: ShoppingListRepository(database: database),
+      progressRepository: ProgressRepository(database: database),
+      themeModeNotifier: ValueNotifier(ThemeMode.system),
+      sessionEpoch: ValueNotifier(0),
     );
 
     await tester.pumpWidget(
       DependenciesScope(
         dependencies: dependencies,
-        child: MultiBlocProvider(
-          providers: [
-            BlocProvider<ProfileBloc>(
-              create: (_) => ProfileBloc(dependencies.profileRepository)
-                ..add(const ProfileLoadRequested()),
-            ),
-            BlocProvider<MealPlanBloc>(
-              create: (_) => MealPlanBloc(
-                mealPlanRepository: dependencies.mealPlanRepository,
-              )..add(const MealPlanLoadRequested()),
-            ),
-          ],
-          child: const MyApp(),
+        child: ValueListenableBuilder<int>(
+          valueListenable: dependencies.sessionEpoch,
+          builder: (context, epoch, _) {
+            return MultiBlocProvider(
+              key: ValueKey('session-$epoch'),
+              providers: [
+                BlocProvider<ProfileBloc>(
+                  create: (_) => ProfileBloc(dependencies.profileRepository)
+                    ..add(const ProfileLoadRequested()),
+                ),
+                BlocProvider<MealPlanBloc>(
+                  create: (_) => MealPlanBloc(
+                    mealPlanRepository: dependencies.mealPlanRepository,
+                  )..add(const MealPlanLoadRequested()),
+                ),
+                BlocProvider<ProgressBloc>(
+                  create: (_) => ProgressBloc(dependencies.progressRepository)
+                    ..add(const ProgressLoadRequested()),
+                ),
+              ],
+              child: const MyApp(),
+            );
+          },
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Reciper'), findsOneWidget);
   });

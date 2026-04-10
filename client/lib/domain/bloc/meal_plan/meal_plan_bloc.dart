@@ -1,7 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:client/core/errors/user_facing_error.dart';
 import 'package:client/core/utils/app_logger.dart';
+import 'package:client/core/utils/calendar_week.dart';
+import 'package:client/core/utils/client_request_clock.dart';
 import 'package:client/data/repository/meal_plan_repository.dart';
+import 'package:client/domain/models/day_plan.dart';
 import 'meal_plan_event.dart';
 import 'meal_plan_state.dart';
 
@@ -28,10 +32,24 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
         emit(const MealPlanEmpty());
         return;
       }
-      final selectedDate = active.days.isNotEmpty ? active.days.first.date : DateTime.now();
-      final selectedDay = active.days.isNotEmpty ? active.days.first : null;
+      final sortedDayDates = active.days.map((e) => e.date).toList()
+        ..sort(
+          (a, b) => CalendarWeek.dateOnly(a).compareTo(CalendarWeek.dateOnly(b)),
+        );
+      final selectedDate = CalendarWeek.pickDefaultSelectedDate(
+        sortedPlanDays: sortedDayDates,
+        today: DateTime.now(),
+      );
+      DayPlan? selectedDay;
+      for (final d in active.days) {
+        if (CalendarWeek.isSameDay(d.date, selectedDate)) {
+          selectedDay = d;
+          break;
+        }
+      }
       emit(
         MealPlanLoaded(
+          activePlan: active,
           plan: active,
           selectedDate: selectedDate,
           dayPlan: selectedDay,
@@ -39,7 +57,7 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
       );
     } catch (e, st) {
       AppLogger.warning('MealPlanBloc: load failed', e, st);
-      emit(MealPlanError('$e'));
+      emit(MealPlanError(userFacingErrorMessage(e)));
     }
   }
 
@@ -49,15 +67,66 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
   ) async {
     final current = state;
     if (current is! MealPlanLoaded) return;
-    final day = current.plan.days
-        .where((d) => d.date.year == event.date.year && d.date.month == event.date.month && d.date.day == event.date.day)
-        .cast()
-        .toList();
+
+    final selected = CalendarWeek.dateOnly(event.date);
+    final today = CalendarWeek.todayDateOnly();
+
+    if (selected.isBefore(today)) {
+      final hist = await _repo.getPlanCoveringDate(selected);
+      if (hist != null) {
+        DayPlan? histDay;
+        for (final d in hist.days) {
+          if (CalendarWeek.isSameDay(d.date, selected)) {
+            histDay = d;
+            break;
+          }
+        }
+        emit(
+          MealPlanLoaded(
+            activePlan: current.activePlan,
+            plan: hist,
+            selectedDate: selected,
+            dayPlan: histDay,
+            isHistoricalView: true,
+            missingHistoricalPlan: false,
+          ),
+        );
+      } else {
+        emit(
+          MealPlanLoaded(
+            activePlan: current.activePlan,
+            plan: current.activePlan,
+            selectedDate: selected,
+            dayPlan: null,
+            isHistoricalView: true,
+            missingHistoricalPlan: true,
+          ),
+        );
+      }
+      return;
+    }
+
+    final active = await _repo.getActivePlan();
+    if (active == null) {
+      emit(const MealPlanEmpty());
+      return;
+    }
+
+    DayPlan? activeDay;
+    for (final d in active.days) {
+      if (CalendarWeek.isSameDay(d.date, selected)) {
+        activeDay = d;
+        break;
+      }
+    }
     emit(
       MealPlanLoaded(
-        plan: current.plan,
-        selectedDate: event.date,
-        dayPlan: day.isNotEmpty ? day.first : null,
+        activePlan: active,
+        plan: active,
+        selectedDate: selected,
+        dayPlan: activeDay,
+        isHistoricalView: false,
+        missingHistoricalPlan: false,
       ),
     );
   }
@@ -77,18 +146,19 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
     final current = state;
     AppLogger.info('MealPlanBloc: _onMealReplaceRequested: ${event.mealId}');
     if (current is! MealPlanLoaded) return;
+    if (current.isHistoricalView || current.missingHistoricalPlan) return;
     emit(MealReplacingInProgress(mealId: event.mealId, previous: current));
     try {
-      final meal = current.plan.meals.where((m) => m.id == event.mealId).toList();
+      final meal = current.activePlan.meals.where((m) => m.id == event.mealId).toList();
       final mealRow = meal.isNotEmpty ? meal.first : null;
       final recipe = () {
         if (mealRow == null) return null;
         final list =
-            current.plan.recipes.where((r) => r.id == mealRow.recipeId).toList();
+            current.activePlan.recipes.where((r) => r.id == mealRow.recipeId).toList();
         return list.isEmpty ? null : list.first;
       }();
 
-      final dayIds = current.plan.days
+      final dayIds = current.activePlan.days
           .where((d) =>
               d.date.year == current.selectedDate.year &&
               d.date.month == current.selectedDate.month &&
@@ -96,10 +166,10 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
           .map((d) => d.id)
           .toSet();
       final items =
-          current.plan.meals.where((m) => dayIds.contains(m.dayPlanId)).toList();
+          current.activePlan.meals.where((m) => dayIds.contains(m.dayPlanId)).toList();
 
       double sumCalories(Iterable<dynamic> meals) {
-        final recipeById = {for (final r in current.plan.recipes) r.id: r};
+        final recipeById = {for (final r in current.activePlan.recipes) r.id: r};
         double sum = 0;
         for (final m in meals) {
           final r = recipeById[m.recipeId];
@@ -135,6 +205,7 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
           'budget_level': null,
         },
         'fridge_products': const <Map<String, dynamic>>[],
+        'client_context': ClientRequestClock.clientContextJson(),
       };
       AppLogger.info('MealPlanBloc.replace payload=$payload');
 
@@ -145,7 +216,12 @@ class MealPlanBloc extends Bloc<MealPlanEvent, MealPlanState> {
       add(const MealPlanLoadRequested());
     } catch (e, st) {
       AppLogger.warning('MealPlanBloc: replace failed', e, st);
-      emit(MealPlanError('$e'));
+      emit(
+        MealPlanOperationError(
+          previous: current,
+          message: userFacingErrorMessage(e),
+        ),
+      );
     }
   }
 

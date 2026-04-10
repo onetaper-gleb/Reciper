@@ -16,8 +16,9 @@ class ConnectivityService {
   Stream<bool> get isOnline => _controller.stream;
 
   Future<void> _emit() async {
-    final result = await _connectivity.checkConnectivity();
-    final online = result != ConnectivityResult.none;
+    final results = await _connectivity.checkConnectivity();
+    final online =
+        results.isNotEmpty && !results.contains(ConnectivityResult.none);
     _controller.add(online);
   }
 
