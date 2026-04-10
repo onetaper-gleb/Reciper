@@ -1,0 +1,22 @@
+Replace the current meal.
+Return JSON ONLY and it MUST match the schema from the system instruction.
+Response shape MUST be exactly: {{"recipe": <RecipeSchema>}}
+
+Client context (device local date/time):
+{client_context}
+
+Current meal:
+{current_meal}
+
+Reason:
+{reason}
+
+Day context:
+{day_context}
+
+Preferences:
+{preferences}
+
+Fridge products:
+{fridge_products}
+

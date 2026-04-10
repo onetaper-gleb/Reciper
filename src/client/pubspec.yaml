@@ -1,0 +1,79 @@
+name: client
+description: Reciper MVP — AI nutrition assistant (local-first Flutter client).
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # HTTP & state
+  dio: ^5.9.0
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+
+  # Local persistence
+  drift: ^2.29.0
+  sqlite3_flutter_libs: ^0.5.41
+  path: ^1.9.1
+  path_provider: ^2.1.5
+
+  # Codegen annotations (runtime)
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.11.0
+
+  # Voice & background
+  speech_to_text: ^7.3.0
+  flutter_tts: ^4.2.3
+  flutter_foreground_task: ^9.1.0
+  flutter_local_notifications: ^19.5.0
+
+  # Camera & media
+  camera: ^0.11.2
+  image_picker: ^1.2.0
+  permission_handler: ^12.0.1
+
+  # UI & connectivity
+  connectivity_plus: ^7.0.0
+  intl: ^0.20.2
+  fl_chart: ^0.70.2
+
+  shared_preferences: ^2.5.3
+
+  flutter_native_splash: ^2.4.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  bloc_test: ^10.0.0
+  flutter_lints: ^6.0.0
+
+  build_runner: ^2.10.4
+  drift_dev: ^2.29.0
+  freezed: ^3.2.3
+  json_serializable: ^6.11.1
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/branding/
+
+flutter_native_splash:
+  color: "#1B5E20"
+  android_12:
+    color: "#1B5E20"
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_icon.png
+  min_sdk_android: 21
