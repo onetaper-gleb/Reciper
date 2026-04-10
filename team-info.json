@@ -1,0 +1,24 @@
+{
+    "team_name": "Гарри Поттер и дары вайбкодинга",
+    "created_at": "2026-04-10",
+    "members": [
+      {
+        "name": "Силова Дарья",
+        "email": "daraliova128@mail.ru",
+        "role": "capitan",
+        "sourcecraft_username": "ctrl-vibe-25"
+      },
+      {
+        "name": "Игнатова Алиса",
+        "email": "ignatovaad2007@gmail.com",
+        "role": "member",
+        "sourcecraft_username": "ctrl-vibe-13"
+      },
+      {
+        "name": "Синявский Глеб",
+        "email": "tigertankp@gmail.com",
+        "role": "member",
+        "sourcecraft_username": "ctrl-vibe-26"
+      }
+    ]
+  }
